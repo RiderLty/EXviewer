@@ -20,4 +20,4 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: true
-          tags: driverlin/exviewer:latest
+          tags: riderlty/exviewer:latest

@@ -2,20 +2,20 @@
 
 E站的PWA客户端，于在线浏览，下载以及管理本地画廊。基于React与MaterialUI构建
 
-[在线演示](https://driverlin.github.io/EXviewer/demo/)
+[在线演示](https://RiderLty.github.io/EXviewer/demo/)
 
 
 ## 截图
 
 <div style="display: flex;">
-<img src="https://raw.githubusercontent.com/DriverLin/EXviewer/master/Screenshot/IMG_0006.jpg" width="30%" title="home"/>
-<img src="https://raw.githubusercontent.com/DriverLin/EXviewer/master/Screenshot/IMG_0012.jpg" width="30%" title="home" />
-<img src="https://raw.githubusercontent.com/DriverLin/EXviewer/master/Screenshot/IMG_0007.jpg" width="30%" title="home" />
+<img src="https://raw.githubusercontent.com/RiderLty/EXviewer/master/Screenshot/IMG_0006.jpg" width="30%" title="home"/>
+<img src="https://raw.githubusercontent.com/RiderLty/EXviewer/master/Screenshot/IMG_0012.jpg" width="30%" title="home" />
+<img src="https://raw.githubusercontent.com/RiderLty/EXviewer/master/Screenshot/IMG_0007.jpg" width="30%" title="home" />
 </div>
 <div style="display: flex;">
-<img src="https://raw.githubusercontent.com/DriverLin/EXviewer/master/Screenshot/Screenshot_20220613-210439.jpg" width="30%" title="home" />
-<img src="https://raw.githubusercontent.com/DriverLin/EXviewer/master/Screenshot/Screenshot_20220613-210111.jpg" width="30%" title="detail"/>
-<img src="https://raw.githubusercontent.com/DriverLin/EXviewer/master/Screenshot/Screenshot_20220613-210501.jpg" width="30%" title="detail"/>
+<img src="https://raw.githubusercontent.com/RiderLty/EXviewer/master/Screenshot/Screenshot_20220613-210439.jpg" width="30%" title="home" />
+<img src="https://raw.githubusercontent.com/RiderLty/EXviewer/master/Screenshot/Screenshot_20220613-210111.jpg" width="30%" title="detail"/>
+<img src="https://raw.githubusercontent.com/RiderLty/EXviewer/master/Screenshot/Screenshot_20220613-210501.jpg" width="30%" title="detail"/>
 </div>
 
 ## Docker 运行
@@ -24,7 +24,7 @@ docker run -d --name=exviewer --restart=unless-stopped \
 -p 7964:7964 \
 -v <下载路径>:/Download \
 -e EH_COOKIE='<cookie字符串>' \
-driverlin/exviewer:latest 
+RiderLty/exviewer:latest 
 ```
 可选的配置项
 ```
@@ -39,7 +39,7 @@ driverlin/exviewer:latest
 ## 本地部署
 
 ```
-git clone https://github.com/DriverLin/EXviewer
+git clone https://github.com/RiderLty/EXviewer
 cd EXviewer
 pip install -r requirements.txt
 ```
@@ -57,18 +57,18 @@ python server
 ## 部署到Heroku
 使用Heroku托管运行
 
-[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://dashboard.heroku.com/new?template=https://github.com/DriverLin/EXviewer) 
+[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://dashboard.heroku.com/new?template=https://github.com/RiderLty/EXviewer) 
 
 ## 使用termux在安卓手机上运行
 
 由于termux采用滚动更新方式，只能安装最新版本的python导致可能无法适配requirements.txt内的依赖
 
-可先安装环境，再直接使用打包版本[exviewer-termux-aarch64](https://github.com/DriverLin/EXviewer/releases/latest/download/exviewer-termux-aarch64)
+可先安装环境，再直接使用打包版本[exviewer-termux-aarch64](https://github.com/RiderLty/EXviewer/releases/latest/download/exviewer-termux-aarch64)
 ```
 termux-change-repo
 pkg update && pkg upgrade -y
 pkg install libxslt python
-curl -LJo exviewer https://github.com/DriverLin/EXviewer/releases/latest/download/exviewer-termux-aarch64 
+curl -LJo exviewer https://github.com/RiderLty/EXviewer/releases/latest/download/exviewer-termux-aarch64 
 chmod 777 ./exviewer
 ./exviewer
 ```
