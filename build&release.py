@@ -15,7 +15,7 @@ if __name__ == "__main__":
         "Accept": "application/vnd.github.everest-preview+json"
     }
     resp = requests.post(
-        f'https://api.github.com/repos/DriverLin/EXviewer/dispatches',
+        f'https://api.github.com/repos/RiderLty/EXviewer/dispatches',
         data=json.dumps({
             "event_type": "RELEASE",
             "client_payload": {
