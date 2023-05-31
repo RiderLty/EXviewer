@@ -1,0 +1,30 @@
+name: build
+on:
+  repository_dispatch:
+    types: RELEASE
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9' 
+
+      - name: install
+        run: pip install -r requirements.txt & pip install pyinstaller
+
+      - name: build
+        run: |
+            cd server
+            pyinstaller __main__.py -F -p ./ --name exviewer-linux-amd64 -i ../build/favicon.ico --add-data "../build:build"
+
+      - name: Create GitHub release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: ${{ github.event.client_payload.tag}}
+          title: ${{ github.event.client_payload.title}}
+          prerelease: false
+          files: ./server/dist/exviewer-linux-amd64
