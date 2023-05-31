@@ -1,0 +1,12 @@
+{
+    "EH_DOWNLOAD_PATH": "",
+    "EH_CACHE_PATH": "",
+    "EH_COOKIE": "",
+    "UTC_OFFSET": "+08",
+    "PORT": 7964,
+    "API_BLOCK_RULE": {
+        "TYPE": "BLACK_LIST",
+        "WHITE_LIST": [],
+        "BLACK_LIST": []
+    }
+}
