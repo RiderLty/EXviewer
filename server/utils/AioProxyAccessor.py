@@ -20,7 +20,6 @@ from utils.DBM import EHDBM, FAVORITE_STATE, DOWNLOAD_STATE
 from utils.DownloadManager import downloadManager
 from utils.HTMLParser import *
 from utils.tools import checkImg, logger, makeTrackableException
-
 # import heartrate
 # heartrate.trace(browser=True)
 
@@ -479,13 +478,13 @@ class aoiAccessor():
         if os.path.exists(downloadPath):
             return downloadPath
         try:
-            if self.cache_cardInfo.has(gid):
+            if self.cache_cardInfo.has(gid) and self.cache_cardInfo.get(gid) != None:
                 # src = self.cache_cardInfo.get(gid)['rawSrc'].replace(
                 #     "exhentai.org", "ehgt.org")
                 src = self.cache_cardInfo.get(gid)['rawSrc']
                 await self.downloadImg(src, cachePath)
                 return cachePath
-            if self.cache_g_data.has(gid):
+            if self.cache_g_data.has(gid) and self.cache_cardInfo.get(gid) != None:
                 # src = self.cache_cardInfo.get(gid)['rawSrc'].replace(
                 #     "exhentai.org", "ehgt.org")
                 src = self.cache_cardInfo.get(gid)['rawSrc']
@@ -497,6 +496,7 @@ class aoiAccessor():
             await self.downloadImg(src, cachePath)
             return cachePath
         except Exception as e:
+            traceback.print_exc()
             raise makeTrackableException(e, f"getGalleryCover({gid}, {token})")
 
     async def addDownload(self, gidList) -> None:  # 以后改成单个的
@@ -920,9 +920,9 @@ class aoiAccessor():
             gid_token_list = [[x["gid"], x["token"]] for x in syncList_x25]
             try:
                 for g_data in await self.fetchG_dataOfficial(gid_token_list):
+                    taskList.append([g_data["gid"], g_data["token"], -1])#-1代表封面
                     for i in range(int(g_data["filecount"])):
-                        taskList.append(
-                            [g_data["gid"], g_data["token"], i+1])  # 从1开始
+                        taskList.append([g_data["gid"], g_data["token"], i+1])  # 从1开始
             except Exception as e:
                 logger.error("请求G_DATA时发送错误"+str(e))
                 await notify(json.dumps([None, "请求G_DATA时发送错误,同步终止"]))
@@ -938,10 +938,12 @@ class aoiAccessor():
                     if len(taskList) == 0:
                         return
                     gid, token, index = taskList.pop(0)
-                cachePath = path_join(
-                    self.cachePath, f"{gid}_{token}_{index:08d}.jpg")
-                targetUrl = targetServerUrl + \
-                    f"/api/Gallery/{gid}_{token}/{index:08d}.jpg"
+                if index == -1:
+                    cachePath = path_join(self.cachePath, f"{gid}_{token}.jpg")
+                    targetUrl =  f"{targetServerUrl}/api/cover/{gid}_{token}.jpg"
+                else:
+                    cachePath = path_join(self.cachePath, f"{gid}_{token}_{index:08d}.jpg")
+                    targetUrl =  f"{targetServerUrl}/api/Gallery/{gid}_{token}/{index:08d}.jpg"
                 if not checkImg(cachePath):
                     try:
                         await self.downloadImg(
@@ -987,7 +989,8 @@ class aoiAccessor():
                 'pages': cachedCard['pages']
             }
         if gid in self.db.card_info:
-            return {k: v for k, v in self.db.card_info[gid].items()}# 创建一个新的字典，防止修改原字典
+            # 创建一个新的字典，防止修改原字典
+            return {k: v for k, v in self.db.card_info[gid].items()}
         if gid in self.db.history:
             return {k: v for k, v in self.db.history[gid].items()}
         try:
