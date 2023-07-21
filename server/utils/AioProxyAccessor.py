@@ -496,7 +496,7 @@ class aoiAccessor():
             await self.downloadImg(src, cachePath)
             return cachePath
         except Exception as e:
-            traceback.print_exc()
+            # traceback.print_exc()
             raise makeTrackableException(e, f"getGalleryCover({gid}, {token})")
 
     async def addDownload(self, gidList) -> None:  # 以后改成单个的
