@@ -44,6 +44,7 @@ if not os.path.exists(CONFIG_PATH):
     open(CONFIG_PATH, "w").write(json.dumps({
         "EH_DOWNLOAD_PATH": "",
         "EH_CACHE_PATH": "",
+        "EH_DB_PATH": "",
         "EH_COOKIE": "",
         "UTC_OFFSET": "+08",
         "PORT": 7964,
@@ -79,7 +80,7 @@ CACHE_PATH = getConfig("EH_CACHE_PATH", path_join(ROOT_PATH, r"cache"))
 
 GALLERY_PATH = path_join(DOWNLOAD_PATH, r"Gallery")
 COVER_PATH = path_join(DOWNLOAD_PATH, r"cover")
-DB_PATH = path_join(DOWNLOAD_PATH, path_join("api", "NosqlDB.json"))
+DB_PATH = getConfig("EH_DB_PATH", path_join(DOWNLOAD_PATH, path_join("api", "NosqlDB.json")))
 
 for pathName in [os.path.split(DB_PATH)[0], CACHE_PATH, GALLERY_PATH, COVER_PATH]:
     if not os.path.exists(pathName):
