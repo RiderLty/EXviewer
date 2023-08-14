@@ -3,6 +3,7 @@ import json
 import os
 import ssl
 from os.path import join as path_join
+import sys
 import threading
 from time import perf_counter
 
@@ -18,17 +19,29 @@ from uvicorn import Config, Server
 from utils.BlockRules import getRulesChecker
 from utils.HTMLParser import setParserUtcOffset
 from utils.AioProxyAccessor import NOSQL_DBS, aoiAccessor, commentBody
-from utils.DBM import wsDBMBinder
+from utils.DBM import wsDBMBinder,EHDBM
 from utils.tools import logger, makeTrackableException, printTrackableException, getUTCOffset
-from utils.Aria2Manager import aria2Manager
+from fastapi.middleware.cors import CORSMiddleware
+
+serverLoop = asyncio.new_event_loop()
+asyncio.set_event_loop(serverLoop)
+
 serverLoop = asyncio.new_event_loop()
 asyncio.set_event_loop(serverLoop)
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
-ROOT_PATH = os.path.split(os.path.realpath(__file__))[0]
-SERVER_FILE = path_join(os.path.abspath(path_join(ROOT_PATH, r"..")), "build")
+if getattr(sys, 'frozen', False):  # 判断是否打为包
+    ROOT_PATH = os.path.dirname(os.path.abspath(sys.executable))
+    SERVER_FILE = path_join(sys._MEIPASS, "build")
+elif __file__:
+    ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
+    SERVER_FILE = path_join(os.path.abspath(
+        path_join(ROOT_PATH, r"..")), "build")
+else:
+    logger.error("FILE PATH UNKNOWN ERROR!")
 CONFIG_PATH = path_join(ROOT_PATH, r"config.json")
+
 if not os.path.exists(CONFIG_PATH):
     open(CONFIG_PATH, "w").write(json.dumps({
         "EH_DOWNLOAD_PATH": "",
@@ -58,7 +71,7 @@ def getConfig(key, default=None):  # 先检查环境变量 然后检查配置文
         logger.info(f"config[{key}] using default : {default}")
         return default
     logger.error(f"config [{key}] not found !")
-    exit(1)
+    sys.exit(1)
 
 
 COOKIE = getConfig("EH_COOKIE", None)
@@ -98,7 +111,6 @@ class CachingMiddlewareAutoWrite(CachingMiddleware):
     def __init__(self, storage_cls, ttw=16):
         super().__init__(storage_cls)
         self.ttw = ttw
-        self.lastWriteCount = 0
         self.running = True
         self.writeLock = threading.Lock()
         self.stopSignal = threading.Event()
@@ -108,23 +120,19 @@ class CachingMiddlewareAutoWrite(CachingMiddleware):
             self.cache = data
             self._cache_modified_count += 1
 
+    def forceFlush(self):
+        if self._cache_modified_count != 0:
+            start = perf_counter()
+            with self.writeLock:
+                self.flush()
+            logger.debug(
+                f"write cache to file use {(perf_counter()-start) *1000:4f} ms")
+
     def writeWatcherThread(self):
         logger.info("CachingMiddlewareAutoWrite write thread start")
         while not self.stopSignal.wait(self.ttw):
-            if self._cache_modified_count != self.lastWriteCount:
-                timeUsed = perf_counter()
-                with self.writeLock:
-                    self.lastWriteCount = self._cache_modified_count
-                    self.flush()
-                timeUsed = perf_counter() - timeUsed
-                logger.debug(f"write cache to file use {timeUsed*1000:4f} ms")
-        if self._cache_modified_count != self.lastWriteCount:
-            timeUsed = perf_counter()
-            with self.writeLock:
-                self.lastWriteCount = self._cache_modified_count
-                self.flush()
-            timeUsed = perf_counter() - timeUsed
-            logger.debug(f"write cache to file use {timeUsed*1000:4f} ms")
+            self.forceFlush()
+        self.forceFlush()
         logger.info(f"CachingMiddlewareAutoWrite write thread stopped")
 
     def stop(self):
@@ -137,6 +145,7 @@ g_data_wsBinder = wsDBMBinder(NOSQL_DB.table('g_data'), serverLoop)
 download_wsBinder = wsDBMBinder(NOSQL_DB.table('download'), serverLoop)
 favorite_wsBinder = wsDBMBinder(NOSQL_DB.table('favorite'), serverLoop)
 card_info_wsBinder = wsDBMBinder(NOSQL_DB.table('card_info'), serverLoop)
+history_wsBinder = wsDBMBinder(NOSQL_DB.table('history'), serverLoop)
 
 aioPa = aoiAccessor(
     headers=headers,
@@ -148,22 +157,20 @@ aioPa = aoiAccessor(
         download_wsBinder.getDBM(),
         favorite_wsBinder.getDBM(),
         card_info_wsBinder.getDBM(),
+        EHDBM(NOSQL_DB.table('father_tree'), serverLoop, None),
+        history_wsBinder.getDBM()
     ),
     loop=serverLoop
 )
 
 
-
-
 async def test():
     res = await aioPa.getMainPageGalleryCardInfo("https://exhentai.org/")
-    print(json.dumps(res,indent=4))
-    # am = aria2Manager(aioAccessorInstance=aioPa)
-    # print(await am.downloadGallery("https://exhentai.org/torrent/1997715/cd3de2e027fe595ce4540a9585e0d8fd91e6650a.torrent",132,"456"))
+    print(res)
 
 
 if __name__ == "__main__":
-    
+    print("running")
     DB_CACHE_WRITER = threading.Thread(target=NOSQL_CACHE.writeWatcherThread)
     DB_CACHE_WRITER.start()
     logger.debug("test start ")
