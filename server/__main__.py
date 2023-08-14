@@ -21,8 +21,11 @@ from utils.HTMLParser import setParserUtcOffset
 from utils.AioProxyAccessor import NOSQL_DBS, aoiAccessor, commentBody, downloadListBody
 from utils.DBM import wsDBMBinder, EHDBM
 from utils.tools import logger, makeTrackableException, printTrackableException, getUTCOffset
+from utils.AutoTask import autoTask
 import coloredlogs
 from fastapi.middleware.cors import CORSMiddleware
+
+
 
 serverLoop = asyncio.new_event_loop()
 asyncio.set_event_loop(serverLoop)
@@ -556,13 +559,15 @@ def getServer(port):
         ws_max_size=1024*1024*1024*1024,
     )
     return Server(serverConfig)
-
+autoTaskInstance = autoTask(loop=serverLoop,aioPa=aioPa)
 
 if __name__ == "__main__":
     serverInstance = getServer(PORT)
     init_logger()
     DB_CACHE_WRITER = threading.Thread(target=NOSQL_CACHE.writeWatcherThread)
     DB_CACHE_WRITER.start()
+    autoTaskInstance.start()
     serverLoop.run_until_complete(serverInstance.serve())
+    autoTaskInstance.stop()
     NOSQL_CACHE.stop()
     DB_CACHE_WRITER.join()
