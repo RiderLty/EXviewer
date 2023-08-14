@@ -73,10 +73,11 @@ class worker():
             except Exception as e:
                 logger.error(str(e))
                 logger.error(f"下载任务已终止  {self.gid}_{self.token}")
-                self.aioAccessorInstance.db.download[self.gid]['state'] = DOWNLOAD_STATE.FINISHED
+                if self.aioAccessorInstance.db.download[self.gid]:
+                    self.aioAccessorInstance.db.download[self.gid]['state']=DOWNLOAD_STATE.FINISHED
                 return
             self.aioAccessorInstance.db.download[self.gid]['state'] = DOWNLOAD_STATE.NOW_DOWNLOADING
-            
+
             self.downloader()
 
             for _ in range(self.fileCount - success):
@@ -132,6 +133,7 @@ class worker():
 
     def downloader(self):
         taskLock = asyncio.Lock()
+
         async def downloadFunc():
             while True:
                 async with taskLock:
