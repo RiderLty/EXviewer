@@ -15,7 +15,7 @@ import ListItemText from '@mui/material/ListItemText';
 import { styled } from '@mui/material/styles';
 import Switch from '@mui/material/Switch';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useState } from 'react';
 import { useSetting } from '../../utils/SettingHooks';
 import SwipeVerticalIcon from '@mui/icons-material/SwipeVertical';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -77,6 +77,26 @@ export default function ViewSettingPanel(props) {
     const [switchPagination, setSwitchPagination] = useSetting("分页模式", false);
     const [switchDirection, setSwitchDirection] = useSetting("阅读方向", true);
     const [readVertical, setReadVertical] = useSetting("竖屏阅读", false);
+    const [rotateZ, setRotateZ] = useState(readVertical ? 270 : (switchDirection ? 0 : 180))
+
+    const onReadDirectionButtonChanged = () => {
+
+        if (switchDirection === false) {
+            if (readVertical === false) {
+                setReadVertical(true)
+                setRotateZ(old => old + 90)
+            } else {
+                setReadVertical(false)
+                setSwitchDirection(true)
+                setRotateZ(old => old + 90)
+            }
+        } else {
+            setSwitchDirection(false)
+            setRotateZ(old => old + 180)
+        }
+    }
+
+
     return (
         <div>
             <BootstrapDialog
@@ -101,24 +121,9 @@ export default function ViewSettingPanel(props) {
                         color: "text.primary",
                     }}
                 >
-                    <ListItem>
-                        <ListItemIcon>
-                            <SwipeVerticalIcon color='primary' />
-                        </ListItemIcon>
-                        <ListItemText primary="竖向滚动" />
-                        <Switch
-                            edge="end"
-                            onChange={() => {
-                                if(readVertical === false){
-                                    setHorizontalView(false)
-                                }
-                                setReadVertical(!readVertical)
-                            }}
-                            checked={readVertical}
-                        />
-                    </ListItem>
+
                     {
-                        !readVertical ? <div>
+                        <div>
                             <ListItem>
                                 <ListItemIcon>
                                     <ScreenRotationIcon color='primary' />
@@ -141,17 +146,17 @@ export default function ViewSettingPanel(props) {
                                     checked={switchPagination}
                                 />
                             </ListItem> : null}
-                        </div> : null
+                        </div>
                     }
                     <ListItem  >
                         <ListItemIcon>
                             <MenuBookIcon color='primary' />
                         </ListItemIcon>
                         <ListItemText primary="阅读方向" />
-                        <IconButton  onClick={() => setSwitchDirection(!switchDirection)}  >
-                            <ArrowBackIcon color='primary'  sx={{
-                                transition: ".3s",
-                                transform:   switchDirection ?  "" :"rotateZ(180deg)"
+                        <IconButton onClick={onReadDirectionButtonChanged}  >
+                            <ArrowBackIcon color='primary' sx={{
+                                transition: ".4s",
+                                transform: `rotateZ(${rotateZ}deg)`
                             }} />
                         </IconButton>
                     </ListItem>

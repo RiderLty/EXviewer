@@ -15,6 +15,7 @@ from cacheout import LRUCache
 from fastapi import HTTPException
 from pydantic import BaseModel
 from tinydb import Query
+from utils.MakePDF import img2pdf
 from utils.AsyncCacheWarper import AsyncCacheWarper
 from utils.DBM import EHDBM, FAVORITE_STATE, DOWNLOAD_STATE
 from utils.DownloadManager import downloadManager
@@ -1024,3 +1025,10 @@ class aoiAccessor():
         for key in [x for x in self.db.history]:
             del self.db.history[key]
         return count
+
+    async def makePDF(self, gid: int, token: str) -> BytesIO:
+        g_data = await self.get_G_data(gid, token, True,True)
+        imgList = []
+        for i in range(int(g_data["filecount"])):
+            imgList.append(await self.getGalleryImage(gid=gid,token=token,index=i+1))
+        return img2pdf(imgList)        
