@@ -17,6 +17,7 @@
         "gidlist",
         "gmetadata",
         "heartrate",
+        "LANCZOS",
         "lxml",
         "nosel",
         "overscan",
