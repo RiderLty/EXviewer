@@ -314,6 +314,13 @@ async def getGalleryFile(gid_token: str, filename: str, cache="false", countOnly
     try:
         if filename == "g_data.json":
             return await aioPa.get_G_data(gid, token, (cache == "true"), (countOnly == "true"))
+        elif filename == "gallery.pdf":
+            # return 
+            return Response(
+            (await aioPa.makePDF(gid,token)).getvalue(),
+            headers={"Content-Type": "application/pdf",
+                     "Cache-Control": "max-age=31536000"},
+        )
         else:
             index = int(filename.split(".")[0])
             return FileResponse(
@@ -566,8 +573,8 @@ if __name__ == "__main__":
     init_logger()
     DB_CACHE_WRITER = threading.Thread(target=NOSQL_CACHE.writeWatcherThread)
     DB_CACHE_WRITER.start()
-    autoTaskInstance.start()
+    # autoTaskInstance.start()
     serverLoop.run_until_complete(serverInstance.serve())
-    autoTaskInstance.stop()
+    # autoTaskInstance.stop()
     NOSQL_CACHE.stop()
     DB_CACHE_WRITER.join()

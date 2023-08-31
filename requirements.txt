@@ -7,3 +7,5 @@ cacheout==0.14.1
 coloredlogs==15.0.1
 tinydb==4.7.1
 IPy==1.1
+PyPDF2==3.0.1
+Pillow==10.0.0
