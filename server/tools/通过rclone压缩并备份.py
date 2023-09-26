@@ -5,11 +5,23 @@ import threading
 import zipfile
 import time
 
+# ZIP_TMP_DIR = r"P:\\"
+# REMOTE_PATH = "onedrive:/EHBackups"
+# DB_PATH = r"E:\EHDownloads\api\NosqlDB.json"
+# GALLERY_PATH = r"E:\EHDownloads\Gallery"
+# COVER_PATH = r"E:\EHDownloads\cover"
+
+
 ZIP_TMP_DIR = r"P:\\"
-REMOTE_PATH = "onedrive:/EHBackups"
-DB_PATH = r"D:\EHDownloads\api\NosqlDB.json"
-GALLERY_PATH = r"D:\EHDownloads\Gallery"
-COVER_PATH = r"D:\EHDownloads\cover"
+DB_PATH = r"E:\EHDownloads\api\NosqlDB.json"
+GALLERY_PATH = r"E:\EHDownloads\Gallery"
+COVER_PATH = r"E:\EHDownloads\cover"
+
+REMOTE_PATH = r"F:/EHBackups"
+# REMOTE_PATH = "onedrive:/EHBackups"
+
+
+
 
 def execute(command_with_args):
     try:
@@ -74,7 +86,7 @@ if __name__ == "__main__":
     if res["code"] != 0:
         print(res)
         exit(1)
-    print("listing remote")
+    print("listing remote",f"rclone lsjson {REMOTE_PATH}/Gallery")
     start = time.perf_counter()
     res = execute(f"rclone lsjson {REMOTE_PATH}/Gallery")
     print("over", time.perf_counter() - start)
@@ -116,4 +128,6 @@ if __name__ == "__main__":
     [upl_sem.acquire() for _ in range(5)]
     print("upload over")
     print("uploading cover")
-    os.system("rclone sync D:\EHDownloads\cover onedrive:EHBackups\cover -P --transfers=32")
+    # os.system(f"rclone sync D:\EHDownloads\cover {REMOTE_PATH}\cover -P --transfers=32")
+    # rclone sync F:\EHBackups aliyunenc:EHBackups -P --dry-run
+    # rclone sync F:\EHBackups onedrive:EHBackups -P --dry-run

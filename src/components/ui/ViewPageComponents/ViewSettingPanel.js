@@ -80,7 +80,6 @@ export default function ViewSettingPanel(props) {
     const [rotateZ, setRotateZ] = useState(readVertical ? 270 : (switchDirection ? 0 : 180))
 
     const onReadDirectionButtonChanged = () => {
-
         if (switchDirection === false) {
             if (readVertical === false) {
                 setReadVertical(true)
