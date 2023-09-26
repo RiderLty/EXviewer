@@ -179,7 +179,7 @@ const requestClearDiskCache = async () => {
 
 const fetchGalleryList = async (apiURL, next) => {
     if (next) {
-        return await Get(`api/${apiURL}?1=1&next=${next}`)
+        return await Get(`api/${apiURL}&next=${next}`)
     } else {
         return await Get(`api/${apiURL}`)
     }

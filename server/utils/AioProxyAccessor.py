@@ -299,6 +299,7 @@ class aoiAccessor():
         try:
             html = await self.getHtml(f"https://exhentai.org/g/{gid}/{token}/?p=0", cache=cache)
             g_data = getG_dataFromGalleryPage(html)
+            print("g_data")
             self.updateLocalFavorite(gid, g_data['extended']['favoriteIndex'])
             self.cache_g_data.set(gid, g_data)
             return g_data
