@@ -1,5 +1,5 @@
-# FROM python:3.9-alpine
-FROM python:3.9-slim-buster
+FROM python:3.9-alpine
+#FROM python:3.9-slim-buster
 ADD ./ /EXviewer
 RUN rm -rf /EXviewer/.github /EXviewer/.vscode /EXviewer/Screenshot /EXviewer/public /EXviewer/server/dist /EXviewer/server/termux-extend-libs /EXviewer/server/tools
 WORKDIR /EXviewer
