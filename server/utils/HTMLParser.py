@@ -298,7 +298,7 @@ def getG_dataFromGalleryPage(html: str) -> object:
     fileSizeText, fileSizeUnit = FileSize.text.split(" ")
     filesize = int(
         float(fileSizeText)
-        * {"KB": 1024, "MiB": 1048576, "GB": 1073741824}[fileSizeUnit]
+        * {"KiB": 1024, "MiB": 1048576, "GiB": 1073741824}[fileSizeUnit]
     )
     expunged = Visible.text != "Yes"
 
