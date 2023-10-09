@@ -24,7 +24,7 @@ docker run -d --name=exviewer --restart=unless-stopped \
 -p 7964:7964 \
 -v <下载路径>:/Download \
 -e EH_COOKIE='<cookie字符串>' \
-RiderLty/exviewer:latest 
+driverlin/exviewer:latest 
 ```
 可选的配置项
 ```
