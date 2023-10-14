@@ -23,7 +23,7 @@ from utils.HTMLParser import *
 from utils.tools import checkImg, logger, makeTrackableException
 # import heartrate
 # heartrate.trace(browser=True)
-
+from PIL import Image
 
 class commentBody(BaseModel):
     gid: int
@@ -459,12 +459,22 @@ class aoiAccessor():
             raise makeTrackableException(
                 e, f"getGalleryImage({gid}, {token}, {index})")
 
+    def getGalleryPreviewFromLocal(self, gid, token, index) -> bytes:
+        localPath = self.checkGalleryImageLocal(gid,token,index) # width = 200
+        if localPath:
+            image = Image.open(localPath)
+            height = int((float(image.size[1]) / image.size[0]) * 200)
+            resized_image = image.resize((200, height))
+            byte_stream = BytesIO()
+            resized_image.save(byte_stream, format='JPEG')
+            return byte_stream.getvalue()
+        return None
+
     async def getGalleryPreview(self, gid, token, index) -> str:
         try:
             galleryPageUrl = f"https://exhentai.org/g/{gid}/{token}/?p={(index - 1) // 20}"
             galleryPageHtml = await self.getHtml(galleryPageUrl, cache=True)
-            _, previewSrc = getViewInfoFromPage(
-                galleryPageHtml)[(index-1) % 20]
+            _, previewSrc = getViewInfoFromPage(galleryPageHtml)[(index-1) % 20]
             return previewSrc
         except Exception as e:
             raise makeTrackableException(

@@ -23,6 +23,7 @@
         "overscan",
         "pydantic",
         "rategallery",
+        "tobytes",
         "valign",
         "votecomment"
     ]
