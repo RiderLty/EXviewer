@@ -350,6 +350,13 @@ async def getPreviewBytes(gid: int, token: str, index: int):
         )
     except Exception as e:
         printTrackableException(e)
+        localBytes = aioPa.getGalleryPreviewFromLocal(gid, token, index)
+        if localBytes:
+            return Response(
+            localBytes,
+            headers={"Content-Type": "image/jpeg",
+                     "Cache-Control": "max-age=31536000"},
+        )
         raise HTTPException(status_code=500, detail=str(
             makeTrackableException(e, f"请求预览 {gid}/{token}/{index} 失败")))
 
