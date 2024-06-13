@@ -73,7 +73,6 @@ export default function ViewPage(props) {
                 }</div>
         </Grid> : null}
     </div>
-
 }
 
 
@@ -135,15 +134,24 @@ function ViewPageUI(props) {
     const handelTap = (event) => {
         const jmpNum = horizontalView ? 2 : 1
         const direction = switchDirection ? -1 : 1
-        if (event.clientX / document.body.clientWidth > 0.7) {
+
+        // console.log("event.clientX / document.body.clientWidth", event.clientX / document.body.clientWidth)
+        // console.log("event.clientY / document.body.clientHeight", event.clientY / document.body.clientHeight)
+
+        if (event.clientY / document.body.clientHeight < 0.1 && event.clientX / document.body.clientWidth < 0.13 ) {//左上角
+            window.history.go(-1)
+            return
+        }
+
+        if (event.clientX / document.body.clientWidth > 0.7) {//点击右侧
             setPageNum(pageNum + direction * jmpNum)
-        } else if (event.clientX / document.body.clientWidth < 0.3) {
+        } else if (event.clientX / document.body.clientWidth < 0.3) {//点击左侧
             setPageNum(pageNum - direction * jmpNum)
         } else {
-            if (event.clientY / document.body.clientHeight < 0.3) {
+            if (event.clientY / document.body.clientHeight < 0.3) {//点击上方
                 setSettingPanelOpen(settingPanelOpen => !settingPanelOpen)
             }
-            else if (event.clientY / document.body.clientHeight > 0.7) {
+            else if (event.clientY / document.body.clientHeight > 0.7) {//点击下方
                 setSliderOpen(sliderOpen => !sliderOpen)
             }
         }
