@@ -230,7 +230,7 @@ function App_inner() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <PopoverNotifier />
-      <BackButton />
+      {/* <BackButton /> */}
       <div id='mainContainer' style={{ backgroundColor: theme.palette.page.background, width: "100%" }}    >
         <HashRouter>
           <Routes>
