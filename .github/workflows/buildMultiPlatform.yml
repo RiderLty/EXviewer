@@ -5,6 +5,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - linux/amd64
+          # - linux/arm/v7
+          # - linux/arm/v8
+          - linux/arm64
     steps:
       - uses: actions/checkout@v3
 
@@ -17,10 +25,8 @@ jobs:
       - name: build
         run: pyinstaller __main__.py -F -p ./ --name exviewer -i build/favicon.ico --add-data "build:build"
 
-
-
-      - name: Setup Debug Session
-        uses: csexton/debugger-action@master
+      # - name: Setup Debug Session
+      #   uses: csexton/debugger-action@master
 
   # # build:
   # #   runs-on: ubuntu-latest
