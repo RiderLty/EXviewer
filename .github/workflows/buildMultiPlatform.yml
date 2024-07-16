@@ -15,7 +15,7 @@ jobs:
         run: pip install -r requirements.txt & pip install pyinstaller
 
       - name: build
-        run: pyinstaller __main__.py -F -p ./ --name exviewer_${{ matrix.os }} -i build/favicon.ico --add-data "build:build"
+        run: pyinstaller __main__.py -F -p ./ --name exviewer -i build/favicon.ico --add-data "build:build"
 
 
 
