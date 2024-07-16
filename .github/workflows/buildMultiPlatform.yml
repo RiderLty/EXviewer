@@ -5,6 +5,8 @@ jobs:
   pyinstaller-build:
     runs-on: ubuntu-latest
     steps:
+      - name: ls
+        run: ls
 
       - name: mv_file
         run: mv ./server/* .
