@@ -14,6 +14,9 @@ jobs:
       - name: mv_file
         run: mv ./server/* .
 
+      - name: ls
+        run: ls
+
       - name: Create Executable
         uses: sayyid5416/pyinstaller@v1
         with:
