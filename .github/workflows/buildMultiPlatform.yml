@@ -5,25 +5,37 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - linux/amd64
-          # - linux/arm/v7
-          # - linux/arm/v8
-          - linux/arm64
+    # strategy:
+    #   fail-fast: false
+    #   matrix:
+    #     platform:
+    #       - linux/amd64
+    #       # - linux/arm/v7
+    #       # - linux/arm/v8
+    #       - linux/arm64
     steps:
       - uses: actions/checkout@v3
 
       - name: mv_file
         run: mv ./server/* .
 
-      - name: install
-        run: pip install -r requirements.txt & pip install pyinstaller
+      - name: mv_main
+        run: mv __main__.py  main.py
 
-      - name: build
-        run: pyinstaller __main__.py -F -p ./ --name exviewer -i build/favicon.ico --add-data "build:build"
+      - name: Create Executable
+        uses: sayyid5416/pyinstaller@v1
+        with:
+          python_ver: '3.9'
+          spec: 'main.py'
+          requirements: 'requirements.txt'
+          upload_exe_with_name: 'exviewer'
+          options: -F -p ./ --name exviewer -i build/favicon.ico --add-data "build:build"
+
+      # - name: install
+      #   run: pip install -r requirements.txt & pip install pyinstaller
+
+      # - name: build
+      #   run: pyinstaller __main__.py -F -p ./ --name exviewer -i build/favicon.ico --add-data "build:build"
 
       # - name: Setup Debug Session
       #   uses: csexton/debugger-action@master
