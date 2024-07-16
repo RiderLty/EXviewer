@@ -24,7 +24,6 @@ jobs:
         with:
           platforms: |
               linux/amd64
-              inux/arm64
 
           push: true
           tags: riderlty/exviewer:latest
