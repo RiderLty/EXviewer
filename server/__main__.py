@@ -26,7 +26,6 @@ import coloredlogs
 from fastapi.middleware.cors import CORSMiddleware
 
 
-
 serverLoop = asyncio.new_event_loop()
 asyncio.set_event_loop(serverLoop)
 
@@ -83,7 +82,8 @@ CACHE_PATH = getConfig("EH_CACHE_PATH", path_join(ROOT_PATH, r"cache"))
 
 GALLERY_PATH = path_join(DOWNLOAD_PATH, r"Gallery")
 COVER_PATH = path_join(DOWNLOAD_PATH, r"cover")
-DB_PATH = getConfig("EH_DB_PATH", path_join(DOWNLOAD_PATH, path_join("api", "NosqlDB.json")))
+DB_PATH = getConfig("EH_DB_PATH", path_join(
+    DOWNLOAD_PATH, path_join("api", "NosqlDB.json")))
 
 for pathName in [os.path.split(DB_PATH)[0], CACHE_PATH, GALLERY_PATH, COVER_PATH]:
     if not os.path.exists(pathName):
@@ -195,6 +195,7 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.websocket("/websocket/syncDict/card_info")
 async def websocket_endpoint(websocket: WebSocket):
     await card_info_wsBinder.handel_connect(websocket)
+
 
 @app.websocket("/websocket/syncDict/history")
 async def websocket_endpoint(websocket: WebSocket):
@@ -315,12 +316,12 @@ async def getGalleryFile(gid_token: str, filename: str, cache="false", countOnly
         if filename == "g_data.json":
             return await aioPa.get_G_data(gid, token, (cache == "true"), (countOnly == "true"))
         elif filename == "gallery.pdf":
-            # return 
+            # return
             return Response(
-            (await aioPa.makePDF(gid,token)).getvalue(),
-            headers={"Content-Type": "application/pdf",
-                     "Cache-Control": "max-age=31536000"},
-        )
+                (await aioPa.makePDF(gid, token)).getvalue(),
+                headers={"Content-Type": "application/pdf",
+                         "Cache-Control": "max-age=31536000"},
+            )
         else:
             index = int(filename.split(".")[0])
             return FileResponse(
@@ -353,10 +354,10 @@ async def getPreviewBytes(gid: int, token: str, index: int):
         localBytes = aioPa.getGalleryPreviewFromLocal(gid, token, index)
         if localBytes:
             return Response(
-            localBytes,
-            headers={"Content-Type": "image/jpeg",
-                     "Cache-Control": "max-age=31536000"},
-        )
+                localBytes,
+                headers={"Content-Type": "image/jpeg",
+                         "Cache-Control": "max-age=31536000"},
+            )
         raise HTTPException(status_code=500, detail=str(
             makeTrackableException(e, f"请求预览 {gid}/{token}/{index} 失败")))
 
@@ -543,14 +544,11 @@ async def addHistory(request: Request, gid: int, token: str):
 async def clearHistory():
     return {"msg": aioPa.clearHistory()}
 
-
 @app.get("/")
 def index():
     return FileResponse(path_join(SERVER_FILE, "index.html"))
 
-
 app.mount("/", StaticFiles(directory=SERVER_FILE), name="static")
-
 
 def init_logger():
     LOGGER_NAMES = ("uvicorn", "uvicorn.access",)
@@ -573,7 +571,9 @@ def getServer(port):
         ws_max_size=1024*1024*1024*1024,
     )
     return Server(serverConfig)
-autoTaskInstance = autoTask(loop=serverLoop,aioPa=aioPa)
+
+
+autoTaskInstance = autoTask(loop=serverLoop, aioPa=aioPa)
 
 if __name__ == "__main__":
     serverInstance = getServer(PORT)
