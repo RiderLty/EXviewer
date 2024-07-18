@@ -20,7 +20,7 @@ ADD ./ /EXviewer
 WORKDIR /EXviewer
 RUN apt-get update
 RUN apt-get -y install python3-lxml  build-essential patchelf
-RUN pip install -r ./requirements.txt && pip install pyinstaller staticx
+RUN pip install -r ./requirements.txt && pip install pyinstaller
 RUN cd server && pyinstaller __main__.py -F -p ./ --name exviewer -i ../build/favicon.ico --add-data "../build:build"
 # RUN staticx /EXviewer/server/dist/exviewer /exviewer
 # RUN /EXviewer/server/dist/exviewer
