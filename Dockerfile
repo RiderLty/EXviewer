@@ -15,15 +15,18 @@
 # ENV EH_DOWNLOAD_PATH /Download
 # CMD ["python", "server"]
 
-FROM python:3.9.6-buster AS builder
+FROM python:3.9 AS builder
 ADD ./ /EXviewer
 WORKDIR /EXviewer
 RUN apt-get update
 RUN apt-get -y install python3-lxml  build-essential patchelf
-RUN pip install -r ./requirements.txt && pip install pyinstaller
+RUN pip install -r ./requirements.txt && pip install pyinstaller staticx
 RUN cd server && pyinstaller __main__.py -F -p ./ --name exviewer -i ../build/favicon.ico --add-data "../build:build"
+# RUN staticx /EXviewer/server/dist/exviewer /exviewer
+# RUN /EXviewer/server/dist/exviewer
 
-FROM python:3.9-slim-buster 
+# FROM python:3.9-slim-buster 
+FROM python:3.9-slim
 COPY --from=builder /EXviewer/server/dist/exviewer  /exviewer
 ENV EH_CACHE_PATH=/cache
 ENV EH_DOWNLOAD_PATH=/Download
