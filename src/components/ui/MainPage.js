@@ -27,7 +27,7 @@ import { notifyMessage } from '../utils/PopoverNotifier';
 import SecondConfirmDialog from '../utils/SecondConfirmDialog';
 import JumpScroll from '../utils/JumpScroll';
 import { getSetting, useSettingBind } from '../utils/SettingHooks';
-import syncedDB from '../utils/mobxSyncedState';
+import syncedDB, { DOWNLOAD_STATE } from '../utils/mobxSyncedState';
 import { observer } from "mobx-react";
 import { addFavorite, continueDownload, deleteGallery, downloadGallery, fetchGalleryList, removeFavorite } from '../api/serverApi';
 import { autorun, toJS } from 'mobx';
@@ -43,6 +43,10 @@ import LowPriorityIcon from '@mui/icons-material/LowPriority';
 import UTurnRightIcon from '@mui/icons-material/UTurnRight';
 import CloudSyncIcon from '@mui/icons-material/CloudSync';
 import SyncIcon from '@mui/icons-material/Sync';
+import DownloadingIcon from '@mui/icons-material/Downloading';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+
+
 const listUnion = (oldState, newState) => {//合并列表 新的元素按照新列表的顺序添加到最前方
     const oldSet = new Set(oldState)
     const newSet = new Set(newState)
@@ -118,6 +122,10 @@ function MainPage_inner(props) {
     const [loading, setLoading] = useState(false)
     const containerUID = useRef(uuidGenerator())
 
+    const downloadingPageCardGidList = useMemo(() => {
+        return cardGidList.filter((gid) => cardInfoMap[gid] && syncedDB.download[gid] && cardInfoMap[gid].pages !== syncedDB.download[gid].success)
+    }, [cardGidList])
+
     const syncDownloadDBToHooks = (
         forceUpdate,
         download_key_set,
@@ -129,10 +137,11 @@ function MainPage_inner(props) {
         Object.values(download).forEach(item => {
             indexedDownload[item.index] = item.gid// {gid,index,state,success} index不连续
         })
-        const newCardList = indexedDownload.filter(
-            gid => gid !== undefined && card_info[gid] !== undefined
-        ).reverse() //去除空 去除没有card_info的
+
+        const newCardList = indexedDownload.filter(gid => gid && card_info[gid]).reverse() //去除空 去除没有card_info的
+
         downloadCount.current = newCardList.length
+
         if (forceUpdate) {
             setCardInfoMap(toJS(card_info))
             setCardGidList(newCardList)
@@ -294,6 +303,14 @@ function MainPage_inner(props) {
     const [pos, setPos] = useState([-1, -1])
     const [longClickItems, setLongClickItems] = useState([])
     const [longClickedName, setLongClickedName] = useState("")
+    const [downloadingPage, setDownloadingPage] = useState(false)
+
+    useEffect(() => {
+        initClearAll()
+        requestData()
+    }, [downloadingPage])
+
+
     const handelLongClick = (gid, token, name, favorited, canDelete, canContinue, x, y) => {
         setLongClickItems([
             { text: "阅读", onClick: () => { props.openRead(gid, token) }, icon: <AutoStoriesIcon /> },
@@ -310,13 +327,19 @@ function MainPage_inner(props) {
         setPos([x, y])
     }
 
+    const handelNowDownloading = () => {
+        setDownloadingPage(x => !x)
+    }
+
     const action_goTop = {
+        key :"action_goTop",
         name: "回到顶部",
         icon: <ArrowUpwardIcon />,
         onClick: () => { setRefreshToken(Math.random()) },
         closeOnClick: true,
     }
     const action_randomSort = {
+        key:"action_randomSort",
         name: "随机排序",
         icon: <ShuffleIcon />,
         onClick: () => {
@@ -328,6 +351,7 @@ function MainPage_inner(props) {
 
     }
     const action_nameHashSort = {
+        key:"action_nameHashSort",
         name: "名称排序",
         icon: <SortByAlphaIcon />,
         onClick: () => {
@@ -338,6 +362,7 @@ function MainPage_inner(props) {
 
     }
     const action_refresh = {
+        key:"action_refresh",
         name: "刷新",
         icon: <CachedIcon />,
         onClick: () => {
@@ -348,6 +373,7 @@ function MainPage_inner(props) {
 
     }
     const action_continueDownload = {
+        key:"action_continueDownload",
         name: "",
         icon: <PlayArrowIcon />,
         onClick: () => { continueDownload() },
@@ -355,7 +381,17 @@ function MainPage_inner(props) {
 
     }
 
+    const now_downloading = {
+        key:"now_downloading",
+        name: "",
+        icon: downloadingPage ? <CheckCircleIcon /> : <DownloadingIcon />,
+        onClick: () => { handelNowDownloading() },
+        closeOnClick: false,
+    }
+
+
     const request_next = {
+        key:"request_next",
         name: `下一页`,
         icon: <KeyboardDoubleArrowRight />,
         onClick: () => { requestData() },
@@ -363,14 +399,16 @@ function MainPage_inner(props) {
     }
 
     const card_jump = {
+        key:"card_jump",
         name: "跳转",
         icon: <LowPriorityIcon />,
         onClick: () => { handelJumpScrollOpen() },
         closeOnClick: false,
     }
 
+
     const normalActions = [request_next, card_jump, action_goTop, action_randomSort, action_nameHashSort, action_refresh]
-    const downloadPageActions = [action_continueDownload, card_jump, action_goTop, action_randomSort, action_nameHashSort,]
+    const downloadPageActions = [action_continueDownload, now_downloading, card_jump, action_goTop, action_randomSort, action_nameHashSort,]
 
     const historyRecord = useSettingBind("浏览历史", "100")
 
@@ -470,7 +508,7 @@ function MainPage_inner(props) {
             <VScrollCardContainer
                 containerUID={containerUID.current}
                 key={refreshToken}
-                cardGidList={cardGidList}//gid list一定能在info map里找到
+                cardGidList={downloadingPage ? downloadingPageCardGidList : cardGidList}//gid list一定能在info map里找到
                 cardInfoMap={cardInfoMap}//info map是先更新的
                 setScrollTop={setScrollTop}
                 loading={loading}

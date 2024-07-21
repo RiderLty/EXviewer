@@ -90,8 +90,13 @@ const GalleryContainer = styled(ButtonBase)(({ theme }) => ({
     boxSizing: "border-box",
 }));
 
-function GalleryCard_inner(props) {
-
+function GalleryCard_inner(props) {    
+    // useEffect(() => {
+    //     console.log("mount", props.cardInfo.gid);
+    //     return () => {
+    //         console.log("卸载", props.cardInfo.gid);
+    //     }
+    // }, [])
     const classes = useStyles();
 
     const containerHeight = useMemo(() => props.small_matches ? 200 : 160, [props.small_matches]);

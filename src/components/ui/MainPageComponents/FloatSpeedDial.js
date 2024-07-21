@@ -52,7 +52,7 @@ export default function FloatSpeedDial(props) {
         >
             {props.actions.map((action) => (
                 <SpeedDialAction
-                    key={action.name}
+                    key={action.key}
                     icon={action.icon}
                     tooltipTitle={action.name}
                     onClick={() => {
