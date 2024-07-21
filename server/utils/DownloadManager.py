@@ -5,7 +5,7 @@ import shutil
 from typing import List
 
 from utils.DBM import DOWNLOAD_STATE
-from utils.tools import logger, printTrackableException
+from utils.tools import checkImg, logger, printTrackableException
 
 SIGNAL_SUCCESS = 0
 SIGNAL_FAILURE = 1
@@ -33,10 +33,13 @@ class worker():
         # 应因为下载失败时候继续下载也是addDownload
         # 避免出现短时间大量通信以减少前端运算量
         for index in range(self.fileCount):
-            localImg = self.aioAccessorInstance.checkGalleryImageLocal(
-                self.gid, self.token, index + 1)
+            localImg = self.aioAccessorInstance.checkGalleryImageLocal(self.gid, self.token, index + 1)
             if localImg != None:
-                self.imgPathMap[index] = localImg
+                if checkImg(localImg):
+                    self.imgPathMap[index] = localImg
+                else:
+                    os.path.exists(localImg) and os.remove(localImg)
+                    self.noLocalImageIndexList.append(index)          
             else:
                 self.noLocalImageIndexList.append(index)
         return self.fileCount - len(self.noLocalImageIndexList)
@@ -106,7 +109,7 @@ class worker():
                         os.makedirs(saveDir)
                     for i in range(self.fileCount):
                         dst = os.path.join(saveDir, f"{(i + 1):08d}.jpg")
-                        src = self.imgPathMap[i]
+                        src = self.imgPathMap[i]         
                         if not os.path.exists(dst):
                             shutil.move(src, dst)
                             logger.debug(f"mv {src} -> {dst}")
@@ -142,7 +145,7 @@ class worker():
                     index = self.noLocalImageIndexList.pop(0)
                 if not self.interrupted:
                     try:
-                        imgPath = await self.aioAccessorInstance.getGalleryImage(self.gid, self.token, index+1)
+                        imgPath = await self.aioAccessorInstance.getGalleryImage(self.gid, self.token, index+1)                        
                         self.imgPathMap[index] = imgPath
                         await asyncio.sleep(1/1000)
                         await self.channel.put(SIGNAL_SUCCESS)

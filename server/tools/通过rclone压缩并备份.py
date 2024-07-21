@@ -4,6 +4,7 @@ import subprocess
 import threading
 import zipfile
 import time
+import hashlib
 
 # ZIP_TMP_DIR = r"P:\\"
 # REMOTE_PATH = "onedrive:/EHBackups"
@@ -21,7 +22,8 @@ REMOTE_PATH = r"F:/EHBackups"
 # REMOTE_PATH = "onedrive:/EHBackups"
 
 
-
+def hash_gallery(gid_token):
+    return str(int(hashlib.md5(gid_token.encode()).hexdigest(), 16) % 64 + 1)
 
 def execute(command_with_args):
     try:
@@ -60,9 +62,10 @@ def uploader(gallery: str, sem: threading.Semaphore):  # abs path of gallery
     gid_token = os.path.split(gallery)[1]
     tmpZipPath = os.path.join(ZIP_TMP_DIR, gid_token + ".zip")
     zipDir(gallery, tmpZipPath)  # 直接覆盖
-    res = execute("rclone copy {} {}/Gallery".format(tmpZipPath, REMOTE_PATH))
+    res = execute(
+        f"rclone copy {tmpZipPath} {REMOTE_PATH}/Gallery/{hash_gallery(gid_token)}")
     if res["code"] == 0:
-        print(f"success {gid_token}")
+        print(f"success {gid_token} hash={hash_gallery(gid_token)}")
     else:
         print(res)
     os.remove(tmpZipPath)
@@ -71,7 +74,8 @@ def uploader(gallery: str, sem: threading.Semaphore):  # abs path of gallery
 
 def deleter(gid_token: str, sem: threading.Semaphore):
     start = time.perf_counter()
-    res = execute(f"rclone deletefile {REMOTE_PATH}/Gallery/{gid_token}.zip")
+    res = execute(
+        f"rclone deletefile {REMOTE_PATH}/Gallery/{hash_gallery(gid_token)}/{gid_token}.zip")
     print(gid_token, "delete over", time.perf_counter() - start)
     if res["code"] != 0:
         print(res)
@@ -86,9 +90,11 @@ if __name__ == "__main__":
     if res["code"] != 0:
         print(res)
         exit(1)
-    print("listing remote",f"rclone lsjson {REMOTE_PATH}/Gallery")
+
+    print("listing remote",  f"rclone lsjson  --files-only --max-depth 2 {REMOTE_PATH}/Gallery")
     start = time.perf_counter()
-    res = execute(f"rclone lsjson {REMOTE_PATH}/Gallery")
+    res = execute(
+        f"rclone lsjson  --files-only --max-depth 2 {REMOTE_PATH}/Gallery")
     print("over", time.perf_counter() - start)
     if res["code"] != 0:
         print(res)
