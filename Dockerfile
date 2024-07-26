@@ -15,6 +15,15 @@ ENV EH_CACHE_PATH /cache
 ENV EH_DOWNLOAD_PATH /Download
 CMD ["python", "server"]
 
+
+
+              # linux/arm/v7
+              # linux/arm/v8
+              # linux/arm64
+
+
+              
+
 # FROM python:3.9 AS builder
 # ADD ./ /EXviewer
 # WORKDIR /EXviewer
