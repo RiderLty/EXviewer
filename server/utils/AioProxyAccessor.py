@@ -608,8 +608,10 @@ class aoiAccessor():
 
     def clearDiskCache(self) -> str:
         size = self.getDiskCacheSize()
-        shutil.rmtree(self.cachePath, ignore_errors=True)
-        os.makedirs(self.cachePath)
+        # shutil.rmtree(self.cachePath, ignore_errors=True)
+        # os.makedirs(self.cachePath , exist_ok=True)
+        for file in os.listdir(self.cachePath):
+           os.remove(path_join(self.cachePath, file))
         return size
 
     async def addDownloadRecordFromZip(self, gid, token, zipBytes):
