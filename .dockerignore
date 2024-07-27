@@ -1,4 +1,7 @@
-*
-!server
-!build
-!requirements.txt
+.github
+.vscode
+config/
+public/
+Screenshot/
+scripts/
+src/
