@@ -4,7 +4,7 @@ FROM python:3.9-slim-buster
 # 这个兼容最好 可以安装成功所有的
 # FROM python:3.9.6-buster
 
-COPY ./build ./server ./requirements.txt /EXviewer/
+ADD ./ /EXviewer
 WORKDIR /EXviewer
 # RUN apt-get install python3-lxml
 RUN apt-get update && apt-get -y install python3-lxml && pip install -r ./requirements.txt 
