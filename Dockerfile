@@ -4,13 +4,13 @@ FROM python:3.9-slim-buster
 # 这个兼容最好 可以安装成功所有的
 # FROM python:3.9.6-buster
 
-ADD ./build ./server ./requirements.txt /EXviewer/
+COPY ./build ./server ./requirements.txt /EXviewer/
 WORKDIR /EXviewer
 # RUN apt-get install python3-lxml
 RUN apt-get update && apt-get -y install python3-lxml && pip install -r ./requirements.txt 
 ENV EH_CACHE_PATH /cache
 ENV EH_DOWNLOAD_PATH /Download
-CMD ["python", "server"]
+CMD ["python", "/Exviewer/server"]
 
 
 
