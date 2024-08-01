@@ -170,6 +170,7 @@ class aoiAccessor():
             else:
                 raise Exception(f"checkImg({url}) failed")
         except Exception as e:
+            traceback.print_exc()
             raise makeTrackableException(e, f"download({url}) -> bytes failed")
 
     async def downloadImg(self, url, filePath):
