@@ -6,6 +6,7 @@ from lxml import etree
 from utils.tools import printPerformance, timestamp_to_str
 import traceback
 
+
 def setParserUtcOffset(num):
     global UTC_OFFSET
     UTC_OFFSET = num
@@ -67,7 +68,8 @@ class MainPageParser():
                 './td[@class="gl4m"]/div[contains(@class,"ir")]/@style')[0]
             uploadText = elem.xpath('./td[@class="gl2m"]/div[3]/text()')
             if len(uploadText) == 0:
-                uploadText = elem.xpath('./td[@class="gl2m"]/div[3]/s/text()')[0]
+                uploadText = elem.xpath(
+                    './td[@class="gl2m"]/div[3]/s/text()')[0]
             else:
                 uploadText = uploadText[0]
             infos.append(
@@ -104,10 +106,12 @@ class MainPageParser():
                 './td[@class="gl4m"]/div[contains(@class,"ir")]/@style')[0]
             uploadText = elem.xpath('./td[@class="gl2m"]/div[3]/text()')
             if len(uploadText) == 0:
-                uploadText = elem.xpath('./td[@class="gl2m"]/div[3]/s/text()')[0]
+                uploadText = elem.xpath(
+                    './td[@class="gl2m"]/div[3]/s/text()')[0]
             else:
                 uploadText = uploadText[0]
-            lang = elem.xpath('./td[@class="gl3m glname"]/a/div[@class="gltm"]/div[@class="gt"]/text()')
+            lang = elem.xpath(
+                './td[@class="gl3m glname"]/a/div[@class="gltm"]/div[@class="gt"]/text()')
             if len(lang) == 0:
                 lang = ""
             else:
@@ -138,16 +142,20 @@ class MainPageParser():
             href = elem.xpath('./td[@class="gl3c glname"]/a/@href')[0]
             gid = int(href.split("/")[-3])
             token = href.split("/")[-2]
-            imgElem = elem.xpath('./td[@class="gl2c"]/div[@class="glthumb"]/div/img')[0]
+            imgElem = elem.xpath(
+                './td[@class="gl2c"]/div[@class="glthumb"]/div/img')[0]
             src = imgElem.xpath('./@src')
             data_src = imgElem.xpath('./@data-src')
-            rankStyleText = elem.xpath( './td[@class="gl2c"]/div[3]/div[contains(@class,"ir")]/@style')[0]
+            rankStyleText = elem.xpath(
+                './td[@class="gl2c"]/div[3]/div[contains(@class,"ir")]/@style')[0]
             uploadText = elem.xpath('./td[@class="gl2c"]/div[3]/div[1]/text()')
             if len(uploadText) == 0:
-                uploadText = elem.xpath('./td[@class="gl2c"]/div[3]/div[1]/s/text()')[0]
+                uploadText = elem.xpath(
+                    './td[@class="gl2c"]/div[3]/div[1]/s/text()')[0]
             else:
                 uploadText = uploadText[0]
-            tags = elem.xpath('./td[@class="gl3c glname"]/a/div/div[@class="gt"]/@title')
+            tags = elem.xpath(
+                './td[@class="gl3c glname"]/a/div/div[@class="gt"]/@title')
             infos.append(
                 {
                     "type": CardInfoType.COMPACT,
@@ -167,7 +175,6 @@ class MainPageParser():
             )
         return infos
 
-
     @staticmethod
     def extended(root: Any) -> List[dict]:
         infos = []
@@ -175,12 +182,14 @@ class MainPageParser():
             href = elem.xpath('./td[@class="gl2e"]/div/a/@href')[0]
             gid = int(href.split("/")[-3])
             token = href.split("/")[-2]
-            rankStyleText = elem.xpath('.//div[@class="gl3e"]/div[contains(@class,"ir")]/@style')[0]
-            category=elem.xpath('.//div[@class="gl3e"]/div[1]/text()')[0]
-            pagesText= elem.xpath('.//div[@class="gl3e"]/div[5]/text()')[0]
+            rankStyleText = elem.xpath(
+                './/div[@class="gl3e"]/div[contains(@class,"ir")]/@style')[0]
+            category = elem.xpath('.//div[@class="gl3e"]/div[1]/text()')[0]
+            pagesText = elem.xpath('.//div[@class="gl3e"]/div[5]/text()')[0]
             uploadText = elem.xpath('.//div[@class="gl3e"]/div[2]/text()')
             if len(uploadText) == 0:
-                uploadText = elem.xpath('.//div[@class="gl3e"]/div[2]/s/text()')
+                uploadText = elem.xpath(
+                    './/div[@class="gl3e"]/div[2]/s/text()')
             else:
                 uploadText = uploadText[0]
             tags = elem.xpath('.//div[@class="gt"]/@title')
@@ -201,8 +210,8 @@ class MainPageParser():
                     "tags": tags
                 }
             )
-        return infos        
-  
+        return infos
+
     @staticmethod
     def thumbnail(root: Any) -> List[dict]:
         infos = []
@@ -210,13 +219,15 @@ class MainPageParser():
             href = elem.xpath(".//a/@href")[0]
             gid = int(href.split("/")[-3])
             token = href.split("/")[-2]
-            rankStyleText = elem.xpath('div[@class="gl5t"]/div/div[contains(@class,"ir")]/@style')[0]
+            rankStyleText = elem.xpath(
+                'div[@class="gl5t"]/div/div[contains(@class,"ir")]/@style')[0]
             c_u_p_s = elem.xpath("div[@class='gl5t']/div/div/text()")
             if len(c_u_p_s) == 3:
                 [category, uploadText, pagesText] = c_u_p_s  # 正常
             else:
                 [category, pagesText] = c_u_p_s
-                uploadText = elem.xpath(  "div[@class='gl5t']/div/div/s/text()")[0]  # 已删除的画廊
+                uploadText = elem.xpath(
+                    "div[@class='gl5t']/div/div/s/text()")[0]  # 已删除的画廊
             lang = elem.xpath("div[@class='gl6t']/div/text()")
             lang = lang[0] if len(lang) == 1 else ""
             infos.append(
@@ -239,12 +250,12 @@ class MainPageParser():
         return infos
 
 
-
 def parseMainPage(html: str) -> List[object]:
     xml = etree.HTML(html)
-    select = xml.xpath( "//div[@class='searchnav']/div[last()]/select/option[@selected='selected']/@value")
+    select = xml.xpath(
+        "//div[@class='searchnav']/div[last()]/select/option[@selected='selected']/@value")
     # print("select",select)
-    if len(select) == 0:#没有结果
+    if len(select) == 0:  # 没有结果
         return []
     type = select[0]
     if type == "t":  # Thumbnail
@@ -258,6 +269,7 @@ def parseMainPage(html: str) -> List[object]:
     if type == "m":  # Minimal
         return MainPageParser.minimal(xml)
     return []
+
 
 CLASS_RATING_COLOR_MAP = {
     "ir": "",
@@ -450,3 +462,18 @@ def getViewInfoFromPage(html):
             elem.xpath("a/img/@src")[0]
         )for elem in etree.HTML(html).xpath('//div[@class="gdtl"]')
     ]
+
+
+def getGalleryTorrents(html: str) -> List[object]:
+    result = []
+    xml = etree.HTML(html)
+    for form in xml.xpath('//div[@id="torrentinfo"]/div[1]/form'):
+        result.append({
+            "uploadDate": form.xpath("./div/table/tr[1]/td/span[2]/text()")[0],
+            "size": form.xpath("./div/table/tr[1]/td[2]/text()")[0].strip(),
+            "uploader": form.xpath("./div/table/tr[2]/td/text()")[0].strip(),
+            "link": form.xpath("./div/table/tr[3]/td/a/@href")[0],
+            "magnet": "magnet:?xt=urn:btih:"+form.xpath("./div/table/tr[3]/td/a/@href")[0].split("/")[-1].split(".")[0],
+            "fileName": form.xpath("./div/table/tr[3]/td/a/text()")[0]
+        })
+    return result
