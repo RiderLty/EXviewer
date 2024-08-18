@@ -17,7 +17,7 @@ from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 from uvicorn import Config, Server
 from utils.BlockRules import getRulesChecker
-from utils.HTMLParser import setParserUtcOffset
+from utils.HTMLParser import getGalleryTorrents, setParserUtcOffset
 from utils.AioProxyAccessor import NOSQL_DBS, aoiAccessor, commentBody
 from utils.DBM import wsDBMBinder,EHDBM
 from utils.tools import logger, makeTrackableException, printTrackableException, getUTCOffset
@@ -164,10 +164,19 @@ aioPa = aoiAccessor(
 )
 
 
-async def test():
-    res = await aioPa.getMainPageGalleryCardInfo("https://exhentai.org/")
-    print(res)
+NO_TORRENT = "https://exhentai.org/gallerytorrents.php?gid=3026637&t=0f45a87fc9"
+NO_UPTODATE = "https://exhentai.org/gallerytorrents.php?gid=3026215&t=f09b5306b2"
+UPDATE_AND_OLD = "https://exhentai.org/gallerytorrents.php?gid=3026605&t=46c8a9ef8e"
+ONE_AND_ISUPDATE = "https://exhentai.org/gallerytorrents.php?gid=3026602&t=885bc99244"
 
+
+async def test():
+    try:
+        res = await aioPa.getHtml(UPDATE_AND_OLD)
+        data = getGalleryTorrents(res)
+        print(data)
+    except Exception as e:
+        print(e)
 
 if __name__ == "__main__":
     print("running")
