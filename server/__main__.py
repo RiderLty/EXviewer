@@ -18,7 +18,7 @@ from tinydb.storages import JSONStorage
 from uvicorn import Config, Server
 from utils.BlockRules import getRulesChecker
 from utils.HTMLParser import setParserUtcOffset
-from utils.AioProxyAccessor import NOSQL_DBS, aoiAccessor, commentBody, downloadListBody
+from utils.AioProxyAccessor import NOSQL_DBS, aoiAccessor, commentBody, downloadListBody, gidTokenListBody
 from utils.DBM import wsDBMBinder, EHDBM
 from utils.tools import logger, makeTrackableException, printTrackableException, getUTCOffset
 from utils.AutoTask import autoTask
@@ -255,6 +255,23 @@ async def download(request: Request, gid: int, token: str):
         raise HTTPException(status_code=500, detail=str(
             makeTrackableException(e, f"{gid}_{token} 添加下载失败")))
 
+@app.post("/api/fetch_g_data")
+async def fetch_g_data(request: Request, gidList:gidTokenListBody):#批量获取g_data 使用官方接口
+    if checkBlock(request):
+        raise HTTPException(status_code=403, detail=str(
+            makeTrackableException(None, "BLOCKED")))
+    try:
+        
+        splittedList = [gidList.__root__[i:i+25] for i in range(0, len(gidList.__root__), 25)]
+        g_data_list = []
+        for gidListBlock in splittedList:
+            for g_data in await aioPa.fetchG_dataOfficial(gidListBlock):
+                g_data_list.append(g_data)
+        return g_data_list
+    except Exception as e:
+        printTrackableException(e)
+        raise HTTPException(status_code=500, detail=str(
+            makeTrackableException(e, f"请求失败")))
 
 @app.post("/api/download")  # 添加多个下载 顺序添加 最后的是最新的
 async def listDownload(request: Request, gidList: downloadListBody):

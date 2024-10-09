@@ -35,7 +35,9 @@ class commentBody(BaseModel):
 
 class downloadListBody(BaseModel):
     __root__: List[List[Union[int, str]]]
-
+    
+class gidTokenListBody(BaseModel):
+    __root__: List[List[Union[int, str]]]
 
 class NOSQL_DBS():
     def __init__(self, g_data_dbm: EHDBM, download_dbm: EHDBM, favorite_dbm: EHDBM, card_info_dbm: EHDBM, father_tree: EHDBM, history: EHDBM) -> None:
@@ -53,6 +55,8 @@ def getProxy():
             return os.environ.get(name, "")
     return ""
 
+
+timeOut = ClientTimeout(total=12)
 
 class aoiAccessor():
     def __init__(
@@ -123,7 +127,7 @@ class aoiAccessor():
                 url,
                 headers=self.headers,
                 proxy=self.proxy,
-                timeout=ClientTimeout(total=8)
+                timeout=timeOut
             )
             html = await resp.text()
             removeIndex = html.find("<html")
@@ -155,7 +159,7 @@ class aoiAccessor():
             url,
             headers=self.headers,
             proxy=self.proxy,
-            timeout=ClientTimeout(total=8)
+            timeout=timeOut
         )
 
     async def downloadImgBytes(self, url: str):
@@ -200,6 +204,8 @@ class aoiAccessor():
                 self.db.favorite[gid]['index'] = index
 
     async def addFavorite(self, gid, token, index) -> None:
+        if self.db.favorite[gid]["state"] == FAVORITE_STATE.FAVORITED:
+            return
         url = f'https://exhentai.org/gallerypopups.php?gid={gid}&t={token}&act=addfav'
         data = {"favcat": str(index), "favnote": "", "update": "1"}
         try:
@@ -211,7 +217,7 @@ class aoiAccessor():
                 headers=self.headers,
                 data=data,
                 proxy=self.proxy,
-                timeout=ClientTimeout(total=8),
+                timeout=timeOut,
             )
             await response.text()
             if response.ok:
@@ -242,7 +248,7 @@ class aoiAccessor():
                 headers=self.headers,
                 data=data,
                 proxy=self.proxy,
-                timeout=ClientTimeout(total=8),
+                timeout=timeOut,
             )
             await response.text()
             if response.ok and self.db.favorite[gid] != None:
@@ -269,7 +275,7 @@ class aoiAccessor():
                 },
                 headers=self.headers,
                 proxy=self.proxy,
-                timeout=ClientTimeout(total=8),
+                timeout=timeOut,
             )
             text = await resp.text()
             g_data_list = json.loads(text)["gmetadata"]
@@ -693,7 +699,7 @@ class aoiAccessor():
                 headers=self.headers,
                 json=json_data,
                 proxy=self.proxy,
-                timeout=ClientTimeout(total=8),
+                timeout=timeOut,
             )
             if response.ok:
                 result = json.loads(await response.text())
@@ -730,7 +736,7 @@ class aoiAccessor():
                 headers=self.headers,
                 json=json_data,
                 proxy=self.proxy,
-                timeout=ClientTimeout(total=8),
+                timeout=timeOut,
             )
             if response.ok:
                 result = json.loads(await response.text())
@@ -762,7 +768,7 @@ class aoiAccessor():
             headers=self.headers,
             data=data,
             proxy=self.proxy,
-            timeout=ClientTimeout(total=8),
+            timeout=timeOut,
         )
         if response.ok:
             html = await response.text()
