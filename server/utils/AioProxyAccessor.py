@@ -204,7 +204,7 @@ class aoiAccessor():
                 self.db.favorite[gid]['index'] = index
 
     async def addFavorite(self, gid, token, index) -> None:
-        if self.db.favorite[gid]["state"] == FAVORITE_STATE.FAVORITED:
+        if gid in self.db.favorite and self.db.favorite[gid]["state"] == FAVORITE_STATE.FAVORITED:
             return
         url = f'https://exhentai.org/gallerypopups.php?gid={gid}&t={token}&act=addfav'
         data = {"favcat": str(index), "favnote": "", "update": "1"}
