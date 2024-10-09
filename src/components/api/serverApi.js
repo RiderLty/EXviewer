@@ -252,10 +252,9 @@ export {
     getCoverUrl,
     getGalleryImgUrl,
 
-    getWsUrl,
-
     requestDeleteOldGallery,
-
+    
+    getWsUrl,
     addHistory,
     clearHistory,
 }

@@ -11,6 +11,7 @@ const SYNC_ALL = 2
 const LOAD = 3
 
 export function useWsHandeler(wsUrl, onEvent) {
+
     const version = useRef(-1)
     const state = useRef(INIT)
     const ws = useRef(null)
@@ -53,11 +54,13 @@ export function useWsHandeler(wsUrl, onEvent) {
             console.log("ws open!")
             ws.current.send("sync")
         }
-        ws.current = new ReconnectingWebSocket(wsUrl, [], {
-            maxReconnectionDelay: 100,
-        })
-        ws.current.addEventListener("message", onmessage)
-        ws.current.addEventListener("open", onopen)
+        if (wsUrl !== "") {
+            ws.current = new ReconnectingWebSocket(wsUrl, [], {
+                maxReconnectionDelay: 100,
+            })
+            ws.current.addEventListener("message", onmessage)
+            ws.current.addEventListener("open", onopen)
+        }
         return () => {
             if (ws.current && ws.current.readyState === 1) {
                 ws.current.close()
@@ -89,8 +92,8 @@ const combineDict = (newDict) => {
 
 export default function useSyncDict(wsUrl) {
     const [data, setData] = useState({
-       keySet: new Set(),
-       dict:{}
+        keySet: new Set(),
+        dict: {}
     })
     const version = useRef(-1)
     const state = useRef(INIT)

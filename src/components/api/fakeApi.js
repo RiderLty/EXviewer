@@ -165,6 +165,7 @@ export {
 
     requestDeleteOldGallery,
 
+    getWsUrl,
     addHistory,
-
+    clearHistory,
 }
