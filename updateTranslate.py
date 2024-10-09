@@ -18,7 +18,7 @@ for item in remoteTranslation["data"]:
         outDict[tagtype][key] = value
 
 
-with open(r"C:\Users\lty65\projects\EXviewer\public\sources\translate.json",'w') as f:
+with open(r"public/sources/translate.json",'w') as f:
     json.dump(  outDict,f, ensure_ascii=True)
 
 
