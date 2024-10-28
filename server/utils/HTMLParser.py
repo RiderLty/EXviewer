@@ -456,13 +456,20 @@ def getInfoFromViewingPage(html):
 
 # @printPerformance
 def getViewInfoFromPage(html):
-    return [
-        (
-            elem.xpath("a/@href")[0],
-            elem.xpath("a/img/@src")[0]
-        )for elem in etree.HTML(html).xpath('//div[@class="gdtl"]')
-    ]
+    hrefList = etree.HTML(html).xpath('//div[@class="gt200"]/a/@href')
+    srcList = [re.findall(r'url\((.*?)\)',x)[0] for x in etree.HTML(html).xpath('//div[@class="gt200"]/a/div/div/@style')]
+    
+    # print(etree.HTML(html).xpath('//div[@class="gt200"]')[0].xpath("a/@href"))
+    
+    
+    # return [
+    #     (
+    #         elem.xpath("a/@href")[0],
+    #         elem.xpath("a/img/@src")[0]
+    #     )for elem in etree.HTML(html).xpath('//div[@class="gt200"]')
+    # ]
 
+    return list(zip(hrefList,srcList))
 
 def getGalleryTorrents(html: str) -> List[object]:
     result = []
