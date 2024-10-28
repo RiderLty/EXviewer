@@ -164,20 +164,29 @@ aioPa = aoiAccessor(
 )
 
 
-NO_TORRENT = "https://exhentai.org/gallerytorrents.php?gid=3026637&t=0f45a87fc9"
-NO_UPTODATE = "https://exhentai.org/gallerytorrents.php?gid=3026215&t=f09b5306b2"
-UPDATE_AND_OLD = "https://exhentai.org/gallerytorrents.php?gid=3026605&t=46c8a9ef8e"
-ONE_AND_ISUPDATE = "https://exhentai.org/gallerytorrents.php?gid=3026602&t=885bc99244"
+# NO_TORRENT = "https://exhentai.org/gallerytorrents.php?gid=3026637&t=0f45a87fc9"
+# NO_UPTODATE = "https://exhentai.org/gallerytorrents.php?gid=3026215&t=f09b5306b2"
+# UPDATE_AND_OLD = "https://exhentai.org/gallerytorrents.php?gid=3026605&t=46c8a9ef8e"
+# ONE_AND_ISUPDATE = "https://exhentai.org/gallerytorrents.php?gid=3026602&t=885bc99244"
 
+
+# async def test():
+#     try:
+#         res = await aioPa.getHtml(NO_UPTODATE)
+#         data = getGalleryTorrents(res)
+#         print(data)
+#     except Exception as e:
+#         print(e)
 
 async def test():
     try:
-        res = await aioPa.getHtml(UPDATE_AND_OLD)
-        data = getGalleryTorrents(res)
-        print(data)
+        # res = await aioPa.getHtml("https://e-hentai.org/g/3104752/bca9a0bf40/")
+        # print(res)
+        res = await aioPa.getGalleryPreview("3104752","bca9a0bf40",0)
+        print(res)
     except Exception as e:
         print(e)
-
+        
 if __name__ == "__main__":
     print("running")
     DB_CACHE_WRITER = threading.Thread(target=NOSQL_CACHE.writeWatcherThread)
