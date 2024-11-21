@@ -182,8 +182,14 @@ async def test():
     try:
         # res = await aioPa.getHtml("https://e-hentai.org/g/3104752/bca9a0bf40/")
         # print(res)
-        res = await aioPa.getGalleryPreview("3104752","bca9a0bf40",0)
+        # res = await aioPa.getGalleryPreviewBytes("3104752","bca9a0bf40",22)
+        # res = await aioPa.getGalleryPreviewBytes("3104752","bca9a0bf40",23)
+        # print(res)
+        # with open("P:\prev.png" , 'wb') as f:
+        #     f.write(res)
+        res =await aioPa.getGalleryCover(3104752,"bca9a0bf40")
         print(res)
+        
     except Exception as e:
         print(e)
         
