@@ -280,6 +280,7 @@ CLASS_RATING_COLOR_MAP = {
 
 # @printPerformance
 
+coverMatch = re.compile(r'url\(([^\)]+)\)')
 
 def getG_dataFromGalleryPage(html: str) -> object:
     xml = etree.HTML(html)
@@ -294,7 +295,7 @@ def getG_dataFromGalleryPage(html: str) -> object:
     else:
         title_jpn = title_jpn[0]
     category = xml.xpath('//div[@id="gdc"]/div/text()')[0]
-    thumb = xml.xpath('//div[@id="gd1"]/div/@style')[0][54:-11]
+    thumb = coverMatch.findall(xml.xpath('//div[@id="gd1"]/div/@style')[0])[0]
     uploader_text = xml.xpath('//div[@id="gdn"]/a/text()')
     if len(uploader_text) == 0:
         uploader = "(Disowned)"
@@ -456,20 +457,12 @@ def getInfoFromViewingPage(html):
 
 # @printPerformance
 def getViewInfoFromPage(html):
+    # hrefList = etree.HTML(html).xpath('//div[@class="gt200"]/a/@href')
+    # srcList = [re.findall(r'url\((.*?)\)',x)[0] for x in etree.HTML(html).xpath('//div[@class="gt200"]/a/div/div/@style')]
+    # return list(zip(hrefList,srcList))
     hrefList = etree.HTML(html).xpath('//div[@class="gt200"]/a/@href')
-    srcList = [re.findall(r'url\((.*?)\)',x)[0] for x in etree.HTML(html).xpath('//div[@class="gt200"]/a/div/div/@style')]
-    
-    # print(etree.HTML(html).xpath('//div[@class="gt200"]')[0].xpath("a/@href"))
-    
-    
-    # return [
-    #     (
-    #         elem.xpath("a/@href")[0],
-    #         elem.xpath("a/img/@src")[0]
-    #     )for elem in etree.HTML(html).xpath('//div[@class="gt200"]')
-    # ]
-
-    return list(zip(hrefList,srcList))
+    styleList = etree.HTML(html).xpath('//div[@class="gt200"]/a/div/div/@style')
+    return list(zip(hrefList,styleList))
 
 def getGalleryTorrents(html: str) -> List[object]:
     result = []

@@ -359,8 +359,7 @@ async def getGalleryFile(gid_token: str, filename: str, cache="false", countOnly
 @app.get("/api/preview/{gid}/{token}/{index}")
 async def getPreviewBytes(gid: int, token: str, index: int):
     try:
-        src = await aioPa.getGalleryPreview(gid, token, index)
-        bytes = await aioPa.downloadImgBytes(src)
+        bytes = await aioPa.getGalleryPreviewBytes(gid, token, index)
         return Response(
             bytes,
             headers={"Content-Type": "image/jpeg",
