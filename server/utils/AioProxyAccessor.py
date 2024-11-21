@@ -19,7 +19,7 @@ from utils.AsyncCacheWarper import AsyncCacheWarper
 from utils.DBM import EHDBM, FAVORITE_STATE, DOWNLOAD_STATE
 from utils.DownloadManager import downloadManager
 from utils.HTMLParser import *
-from utils.tools import checkImg, crop_image_with_offset, logger, makeTrackableException
+from utils.tools import checkImg, logger, makeTrackableException
 
 # import heartrate
 # heartrate.trace(browser=True)
@@ -569,7 +569,7 @@ class aoiAccessor:
             height = int(matched[0][1])
             url = matched[0][2]  # 图片链接
             offset_x = int(matched[0][3])  # 偏移量
-            cover = matched[0][4] == "cover"  # cover模式
+            cover = matched[0][4] != ""  # cover模式
             imgBytes = await self.downloadImgBytes(url)
             if cover:
                 # 单图
