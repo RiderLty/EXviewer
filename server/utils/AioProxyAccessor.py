@@ -959,6 +959,8 @@ class aoiAccessor:
         return sorted(searchRes, key=lambda x: x["gid"])
 
     async def parentImgMultiplex(self, gid, token):  # 父画廊文件复用
+        logger.info("存在父画廊,复用功能暂时禁用")
+        return
         try:
             parents = await self.checkParents(gid, token)
             if parents:
