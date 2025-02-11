@@ -149,7 +149,7 @@ class aoiAccessor:
         if ".org/g/" in url:
             return None
         elif ".org/s/" in url:
-            return 60
+            return 5
         else:
             return None
 
