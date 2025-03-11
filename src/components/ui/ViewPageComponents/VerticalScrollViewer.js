@@ -128,6 +128,7 @@ export default function VerticalScrollViewer(props) {//resize建议直接重渲�
 
     const lastStart = useRef(-1)
     useEventListener('scroll', (e) => {
+        if(document.scrollingElement.scrollTop === 0 ) return
         const calcRes = calcStart(document.scrollingElement.scrollTop, imgCache)
         if (lastStart.current === calcRes) return
         lastStart.current = calcRes
@@ -138,9 +139,7 @@ export default function VerticalScrollViewer(props) {//resize建议直接重渲�
     })
 
     useEffect(() => {
-        if (lastStart.current === props.value) {
-            return
-        }
+        if (lastStart.current === props.value) return
         lastStart.current = props.value
         const index = props.value - 1
         const targetImgTop = imgTop[index] || calcTop(index, imgCache)
