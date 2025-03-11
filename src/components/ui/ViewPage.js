@@ -167,8 +167,8 @@ function ViewPageUI(props) {
 
     const refreshKey = useMemo(
         () => {
-            return (horizontalView ? 4 : 0) + (switchPagination ? 2 : 0) + (switchDirection ? 1 : 0)
-        }, [horizontalView, switchPagination, switchDirection]
+            return (readVertical ? 8 : 0) + (horizontalView ? 4 : 0) + (switchPagination ? 2 : 0) + (switchDirection ? 1 : 0)
+        }, [readVertical ,horizontalView, switchPagination, switchDirection]
     )
 
 

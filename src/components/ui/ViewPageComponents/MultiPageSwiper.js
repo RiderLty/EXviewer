@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import MultiImageShow from './MultiImageShow';
 import TwoWaySwiper from './TwoWaySwiper';
+import { useRefState } from '../../utils/MyHooks';
 
 
 const list2DoubleTuple = (list) =>
@@ -20,9 +21,9 @@ const list2DoubleTuple = (list) =>
  * @param {string[]} props.urls
  */
 export default function MultiPageSwiper(props) {
-    const [value, _setValue] = useState(Number(props.value));
+    // const [value, _setValue] = useState(Number(props.value));
 
-    const out2in = useMemo(() => {
+    const out2in = () => {
         if (props.double) {
             if (props.pagination) {
                 return Math.floor(props.value / 2) + 1//奇数对应
@@ -32,7 +33,7 @@ export default function MultiPageSwiper(props) {
         } else {
             return props.value
         }
-    }, [props.double, props.pagination, props.value])
+    }
 
     const in2out = (privateValue) => {
         if (props.double) {
@@ -45,6 +46,7 @@ export default function MultiPageSwiper(props) {
             return privateValue
         }
     }
+    const [refValue , value, _setValue] = useRefState(out2in());
 
     const setValue = (eventValue) => {
         _setValue(eventValue);
@@ -52,7 +54,7 @@ export default function MultiPageSwiper(props) {
     }
 
     useEffect(() => {
-        out2in !== value && _setValue(out2in);
+        out2in() !== refValue && _setValue(out2in());
     }, [props.value])
 
     const getSplitUrls = () => {
