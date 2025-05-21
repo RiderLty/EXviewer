@@ -26,6 +26,18 @@ docker run -d --name=exviewer --restart=unless-stopped \
 -e EH_COOKIE='<cookie字符串>' \
 driverlin/exviewer:latest 
 ```
+
+或配置用户名密码，每次运行时获取cookie
+```
+docker run -d --name=exviewer --restart=unless-stopped \
+-p 7964:7964 \
+-v <下载路径>:/Download \
+-e EH_USERNAME=****** \
+-e EH_PASSWORD=****** \
+driverlin/exviewer:latest 
+```
+
+
 可选的配置项
 ```
 -v <缓存路径>:/cache \
