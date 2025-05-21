@@ -24,6 +24,7 @@ from utils.tools import logger, makeTrackableException, printTrackableException,
 from utils.AutoTask import autoTask
 import coloredlogs
 from fastapi.middleware.cors import CORSMiddleware
+from aiohttp import ClientSession , CookieJar
 
 
 serverLoop = asyncio.new_event_loop()
@@ -48,6 +49,8 @@ if not os.path.exists(CONFIG_PATH):
         "EH_CACHE_PATH": "",
         "EH_DB_PATH": "",
         "EH_COOKIE": "",
+        "EH_USERNAME": "",
+        "EH_PASSWORD": "",
         "UTC_OFFSET": "+08",
         "PORT": 7964,
         "API_BLOCK_RULE": {
@@ -61,7 +64,7 @@ CONFIG = json.load(open(CONFIG_PATH))
 checkBlock = getRulesChecker(CONFIG["API_BLOCK_RULE"])
 
 
-def getConfig(key, default=None):  # 先检查环境变量 然后检查配置文件 如果default不空则返回default 否则报错
+def getConfig(key, default=None , require = True):  # 先检查环境变量 然后检查配置文件 如果default不空则返回default 否则报错
     if os.environ.get(key) != None:
         logger.info(f"config[{key}] from env", )
         return os.environ.get(key)
@@ -71,11 +74,69 @@ def getConfig(key, default=None):  # 先检查环境变量 然后检查配置文
     if default != None:
         logger.info(f"config[{key}] using default : {default}")
         return default
-    logger.error(f"config [{key}] not found !")
-    sys.exit(1)
+    if require:
+        logger.error(f"config [{key}] not found !")
+        sys.exit(1)
+    else:
+        return None
+
+EH_COOKIE = getConfig("EH_COOKIE", None , False)
+if EH_COOKIE == None:
+    if (EH_USERNAME := getConfig("EH_USERNAME", None , False)) and ( EH_PASSWORD := getConfig("EH_PASSWORD", None , False)):
+        headers = {
+            'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'accept-language': 'zh',
+            'cache-control': 'max-age=0',
+            'content-type': 'application/x-www-form-urlencoded',
+            'dnt': '1',
+            'origin': 'https://e-hentai.org',
+            'priority': 'u=0, i',
+            'referer': 'https://e-hentai.org/',
+            'sec-ch-ua': '"Chromium";v="136", "Microsoft Edge";v="136", "Not.A/Brand";v="99"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'sec-fetch-dest': 'document',
+            'sec-fetch-mode': 'navigate',
+            'sec-fetch-site': 'same-site',
+            'sec-fetch-user': '?1',
+            'upgrade-insecure-requests': '1',
+            'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36 Edg/136.0.0.0',
+        }
+        params = {
+            'act': 'Login',
+            'CODE': '01',
+        }
+        data = {
+            'CookieDate': '1',
+            'b': 'd',
+            'bt': '1-1',
+            'UserName': 'lty6531600',
+            'PassWord': 'aS6531600',
+            'ipb_login_submit': 'Login!',
+        }
+        # response = requests.post('https://forums.e-hentai.org/index.php', params=params, headers=headers, data=data)
+        async def getCookie(USERNAME, PASSWORD):
+            async with ClientSession(cookie_jar=CookieJar()) as session:
+                async with session.post('https://forums.e-hentai.org/index.php', params=params, headers=headers, data=data) as response:
+                    if response.status == 200:
+                        set_cookies = response.headers.getall('Set-Cookie', [])
+                        cookie_parts = [cookie.split(';', 1)[0] for cookie in set_cookies]
+                        return '; '.join(cookie_parts)
+                    else:
+                        logger.error(f"获取cookie失败 {response.status}")
+                        return None
+        
+        EH_COOKIE = serverLoop.run_until_complete(getCookie(EH_USERNAME, EH_PASSWORD))
+        if EH_COOKIE  == None:
+            logger.error("获取cookie失败")
+            sys.exit(1)
+        logger.info(f"获取cookie成功")
+    else:
+        logger.error("EH_COOKIE not found and EH_USERNAME , EH_PASSWORD not found !")
+        sys.exit(1)
 
 
-COOKIE = getConfig("EH_COOKIE", None)
+ 
 DOWNLOAD_PATH = getConfig(
     "EH_DOWNLOAD_PATH", path_join(ROOT_PATH, r"download"))
 CACHE_PATH = getConfig("EH_CACHE_PATH", path_join(ROOT_PATH, r"cache"))
@@ -105,7 +166,7 @@ setParserUtcOffset(UTC_OFFSET)
 
 headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36",
-    "Cookie": COOKIE,
+    "Cookie": EH_COOKIE,
 }
 
 
