@@ -40,7 +40,7 @@ driverlin/exviewer:latest
 
 可选的配置项
 ```
--v <缓存路径>:/cache \
+-e EH_CACHE_PATH=/cache \
 -e HTTP_PROXY=http://127.0.0.1:4780 \
 -e EH_FAVORITE_DISABLED=true \
 -e EH_DOWNLOAD_DISABLED=true \
@@ -65,11 +65,6 @@ pip install -r requirements.txt
 ```
 python server 
 ```
-
-## 部署到Heroku
-使用Heroku托管运行
-
-[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://dashboard.heroku.com/new?template=https://github.com/RiderLty/EXviewer) 
 
 ## 使用termux在安卓手机上运行
 

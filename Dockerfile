@@ -5,15 +5,16 @@
 # FROM python:3.9.6-buster
 
 
-FROM python:3.9
+# FROM python:3.9
 
-ADD ./ /Exviewer
-WORKDIR /Exviewer
-# RUN apt-get install python3-lxml
-RUN apt-get update && apt-get -y install python3-lxml && pip install -r ./requirements.txt 
-ENV EH_CACHE_PATH /cache
-ENV EH_DOWNLOAD_PATH /Download
-CMD ["python", "/Exviewer/server"]
+# # ADD ./ /Exviewer
+# # WORKDIR /Exviewer
+# # RUN apt-get install python3-lxml
+# RUN apt-get update && apt-get -y install python3-lxml && pip install -r ./requirements.txt 
+# ENV EH_CACHE_PATH=/cache
+# ENV EH_DOWNLOAD_PATH=/Download
+# # CMD ["python", "/Exviewer/server"]
+# CMD ["echo","hello"]
 
 
 
@@ -60,4 +61,12 @@ CMD ["python", "/Exviewer/server"]
 # CMD [/exviewer]
 
 
+#UV
+
+FROM ghcr.io/astral-sh/uv:python3.9-alpine
+ADD ./ /Exviewer
+WORKDIR /Exviewer
+RUN uv sync
+ENV EH_DOWNLOAD_PATH=/Download
+CMD ["uv","run","server"]
 
