@@ -120,6 +120,7 @@ if EH_COOKIE == None:
                 async with session.post('https://forums.e-hentai.org/index.php', params=params, headers=headers, data=data) as response:
                     if response.status == 200:
                         set_cookies = response.headers.getall('Set-Cookie', [])
+                        logger.debug(str(set_cookies))
                         cookie_parts = [cookie.split(';', 1)[0] for cookie in set_cookies]
                         return '; '.join(cookie_parts)
                     else:

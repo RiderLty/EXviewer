@@ -188,7 +188,7 @@ class aoiAccessor:
         下载url 返回bytes
         """
         try:
-            logger.error(f"loading {url}")
+            # logger.error(f"img loading {url}")
             resp = await self.session.request("GET", url, headers=self.headers, proxy=self.proxy, timeout=timeOut)
             bytes = await resp.read()
             if checkImg(bytes):
