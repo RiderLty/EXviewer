@@ -67,33 +67,11 @@ def getProxy():
     return ""
 
 
-timeOut = ClientTimeout(total=12)
+timeOut = ClientTimeout(total=30)
 
 styleMatch = re.compile(
     r"width:(\d+)px;height:(\d+)px;background:transparent url\(([^\)]+)\) -?(\d+)(?:px)? 0 (?:\/ )?(cover )?no-repeat"
 )
-
-# https://exhentai.org/g/3104752/bca9a0bf40
-# width:198px;height:300px;background:transparent url(https://rainfxmohm.hath.network/gkgx8h786ctj5hwlq/209/186-dvvfn7bv.webp) 0 0 / cover no-repeat
-# width:200px;height:299px;background:transparent url(https://s.exhentai.org/t/5d/6e/5d6e2352ae5418d69b64bf9037f117e379cd51ec-4415280-2444-3648-jpg_l.jpg) 0 0 no-repeat
-
-# https://exhentai.org/g/3129446/7d326c857c
-# width:83px;height:300px;background:transparent url(https://puzaqhxrbn.hath.network/c2/ir9aqalccb6cj2wlp/3129446-0.webp) -200px 0 no-repeat
-
-# https://exhentai.org/g/3129502/5136351a0e
-# width:200px;height:113px;background:transparent url(https://praogxqcch.hath.network/c2/kv6n4fe5x709e0wlr/3129502-0.webp) -400px 0 no-repeat
-
-# https://exhentai.org/g/3129575/3623a505de
-# width:200px;height:282px;background:transparent url(https://sunvxqrqcj.hath.network/c2/k05elwigp69gzmwlr/3129575-0.webp) -400px 0 no-repeat
-
-
-# https://exhentai.org/g/3129446/7d326c857c
-# width:83px;height:300px;background:transparent url(https://puzaqhxrbn.hath.network/c2/diau8fyfbshmjnwlr/3129446-0.webp) -200px 0 no-repeat
-
-# https://exhentai.org/g/3128567/2710e63716
-# width:200px;height:284px;background:transparent url(https://sunvxqrqcj.hath.network/c2/v36bbpbaoob822wlq/3128567-0.webp) -0px 0 no-repeat
-
-
 class aoiAccessor:
     def __init__(
         self,
@@ -175,7 +153,7 @@ class aoiAccessor:
                 url, headers=self.headers, proxy=self.proxy, timeout=timeOut
             )
             html = await resp.text()
-            logger.info(f"session.get HTML len=({len(html)}):[{html}]")
+            # logger.info(f"session.get HTML len=({len(html)}):[{html}]")
             removeIndex = html.find("<html")
             if removeIndex != -1:
                 html = html[removeIndex:]
@@ -210,7 +188,8 @@ class aoiAccessor:
         下载url 返回bytes
         """
         try:
-            resp = await self.httpGet(url)
+            logger.error(f"loading {url}")
+            resp = await self.session.request("GET", url, headers=self.headers, proxy=self.proxy, timeout=timeOut)
             bytes = await resp.read()
             if checkImg(bytes):
                 return bytes
