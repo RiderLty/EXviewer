@@ -8,13 +8,11 @@ from PIL import Image
 import requests
 import os
 
-NOSQL_DB = r"E:\EHDownloads\api\NosqlDB.json"
-
+NOSQL_DB = r"/mnt/storage/Exviewer/EHDownloads/api/NosqlDB.json"
 SCAN_MODE = 2# 检查下载完整性 0仅检查文件夹是否存在 1检查文件夹和文件列表 2检查文件夹内图片完整性
-GALLERY_DOWNLOAD_PATH = r"E:\EHDownloads\Gallery"
-COVER_DOWNLOAD_PATH = r"E:\EHDownloads\cover"
-CHECK_LOG = r"C:\Users\lty65\projects\Exviewer\server\tools\checkPassed.json"
-
+GALLERY_DOWNLOAD_PATH = r"/mnt/storage/Exviewer/EHDownloads/Gallery"
+COVER_DOWNLOAD_PATH = r"/mnt/storage/Exviewer/EHDownloads/cover"
+CHECK_LOG = r"/mnt/storage/Projects/exviewer/server/tools/checkPassed.json"
 GALLERY_DOWNLOAD_FILES = set(os.listdir(GALLERY_DOWNLOAD_PATH))
 COVER_DOWNLOAD_FILES = set(os.listdir(COVER_DOWNLOAD_PATH))
 

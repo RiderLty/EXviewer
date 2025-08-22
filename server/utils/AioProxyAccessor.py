@@ -101,6 +101,7 @@ class aoiAccessor:
         coverPath: str,
         cachePath: str,
         galleryPath: str,
+        link_or_move: str,
         db: NOSQL_DBS,
         loop: asyncio.AbstractEventLoop,
     ) -> None:
@@ -108,6 +109,7 @@ class aoiAccessor:
         self.coverPath = coverPath
         self.cachePath = cachePath
         self.galleryPath = galleryPath
+        self.link_or_move = link_or_move
         self.cache_html = LRUCache(maxsize=512, default=None)
         self.cache_cardInfo = LRUCache(maxsize=512, default=None)
         # 下载时可以用， 获取g_data 然后更新数据库和此cache
@@ -130,6 +132,14 @@ class aoiAccessor:
         #     self.loop.create_task(self.updateCardInfo(res["gid"],res["token"]))
         #     for res in self.db.download.getDict().values()
         # ]
+
+    def getCachePath(self, gid, token, index=None):
+        """
+        获取缓存路径
+        """
+        if index is None:  # -1表示封面
+            return path_join(self.cachePath, path_join("cover", f"{gid}_{token}.jpg"))
+        return path_join(self.cachePath, path_join(f"{gid}_{token}", f"{index:08d}.jpg"))
 
     async def inlineSetOnInit(self):
         # try:
@@ -165,6 +175,7 @@ class aoiAccessor:
                 url, headers=self.headers, proxy=self.proxy, timeout=timeOut
             )
             html = await resp.text()
+            logger.info(f"session.get HTML len=({len(html)}):[{html}]")
             removeIndex = html.find("<html")
             if removeIndex != -1:
                 html = html[removeIndex:]
@@ -177,6 +188,7 @@ class aoiAccessor:
         默认使用缓存
         """
         if cache and self.cache_html.has(url):
+            logger.info(f"self.cache_html.has({url})")
             return self.cache_html.get(url)
         try:
             result = await self.getHtmlAlwaysCache(url)
@@ -191,7 +203,7 @@ class aoiAccessor:
         )
 
     @AsyncCacheWarper(
-        cacheContainer=LRUCache(maxsize=512, ttl=3 , default=None),
+        cacheContainer=LRUCache(maxsize=512, ttl=3, default=None),
     )
     async def downloadImgBytes(self, url: str):
         """
@@ -211,6 +223,9 @@ class aoiAccessor:
     async def downloadImg(self, url, filePath):
         try:
             bytes = await self.downloadImgBytes(url)
+            parentDir = os.path.dirname(filePath)
+            if not os.path.exists(parentDir):
+                os.makedirs(parentDir, exist_ok=True)
             with open(filePath, "wb") as f:
                 f.write(bytes)
         except Exception as e:
@@ -472,7 +487,7 @@ class aoiAccessor:
     def checkGalleryImageLocal(
         self, gid, token, index
     ) -> str:  # index从一开始 仅检测本地是否存在
-        cachePath = path_join(self.cachePath, f"{gid}_{token}_{index:08d}.jpg")
+        cachePath = self.getCachePath(gid, token, index)
         if os.path.exists(cachePath):
             return cachePath
         localPath = path_join(
@@ -485,7 +500,7 @@ class aoiAccessor:
 
     async def getGalleryImage(self, gid, token, index) -> str:  # index 从一开始
         localImg = self.checkGalleryImageLocal(gid, token, index)
-        cachePath = path_join(self.cachePath, f"{gid}_{token}_{index:08d}.jpg")
+        cachePath = self.getCachePath(gid, token, index)
         if localImg:
             return localImg
         try:
@@ -592,7 +607,7 @@ class aoiAccessor:
         cacheContainer=LRUCache(maxsize=512, ttl=1, default=None),
     )
     async def getGalleryCover(self, gid, token) -> str:
-        cachePath = path_join(self.cachePath, f"{gid}_{token}.jpg")
+        cachePath = self.getCachePath(gid, token)
         if os.path.exists(cachePath):
             return cachePath
         downloadPath = path_join(self.coverPath, f"{gid}_{token}.jpg")
@@ -625,7 +640,7 @@ class aoiAccessor:
             await self.downloadManagerInstance.addDownload(int(gid), token, None)
 
     async def addListDownload(self, gidList: list) -> None:  # 有error 直接throw
-        splittedList = [gidList[i : i + 25] for i in range(0, len(gidList), 25)]
+        splittedList = [gidList[i: i + 25] for i in range(0, len(gidList), 25)]
         g_data_map = {}
         count = 0
         for gidListBlock in splittedList:
@@ -668,7 +683,7 @@ class aoiAccessor:
         g_data_map = {(gid, token): None for (gid, token) in unFinishList}
         # 数组分割成25个一组
         splittedUnFinishList = [
-            unFinishList[i : i + 25] for i in range(0, len(unFinishList), 25)
+            unFinishList[i: i + 25] for i in range(0, len(unFinishList), 25)
         ]
         for gidList in splittedUnFinishList:
             for g_data in await self.fetchG_dataOfficial(gidList):
@@ -727,18 +742,27 @@ class aoiAccessor:
         return max(indexList) + 1
 
     def getDiskCacheSize(self) -> str:
-        size = sum(
-            os.path.getsize(path_join(self.cachePath, file))
-            for file in os.listdir(self.cachePath)
-        )
+        # size = sum(
+        #     os.path.getsize(path_join(self.cachePath, file))
+        #     for file in os.listdir(self.cachePath)
+        # )
+        # return f"{size / 1024 / 1024:.2f}MB"
+        size = 0
+        for file in os.walk(self.cachePath):
+            for f in file[2]:
+                size += os.path.getsize(path_join(file[0], f))
         return f"{size / 1024 / 1024:.2f}MB"
 
     def clearDiskCache(self) -> str:
         size = self.getDiskCacheSize()
         # shutil.rmtree(self.cachePath, ignore_errors=True)
         # os.makedirs(self.cachePath , exist_ok=True)
-        for file in os.listdir(self.cachePath):
-            os.remove(path_join(self.cachePath, file))
+        for entry in os.listdir(self.cachePath):
+            entry_path = path_join(self.cachePath, entry)
+            if os.path.isfile(entry_path):
+                os.remove(entry_path)
+            elif os.path.isdir(entry_path):
+                shutil.rmtree(entry_path, ignore_errors=True)
         return size
 
     async def addDownloadRecordFromZip(self, gid, token, zipBytes):
@@ -751,7 +775,7 @@ class aoiAccessor:
         extractDir = path_join(self.cachePath, f"{gid}_{token}_extract")
         z.extractall(extractDir)
         for index, file in enumerate(files):
-            cachePath = path_join(self.cachePath, f"{gid}_{token}_{(index+1):08d}.jpg")
+            cachePath = self.getCachePath(gid, token, index + 1)
             extractedPath = path_join(extractDir, file.filename)
             (
                 shutil.move(extractedPath, cachePath)
@@ -774,7 +798,7 @@ class aoiAccessor:
             gidList = sorted(download_rec, key=lambda x: x["index"], reverse=True)[
                 :count
             ]
-        splittedList = [gidList[i : i + 25] for i in range(0, len(gidList), 25)]
+        splittedList = [gidList[i: i + 25] for i in range(0, len(gidList), 25)]
         successCount = 0
         for recList in splittedList:
             try:
@@ -1020,7 +1044,7 @@ class aoiAccessor:
             f"{len(need_update_gid_list)} galleries need to update in father_tree"
         )
         splitted = [
-            need_update_gid_list[i : i + 25]
+            need_update_gid_list[i: i + 25]
             for i in range(0, len(need_update_gid_list), 25)
         ]
         for gid_list_x25 in splitted:
@@ -1101,7 +1125,7 @@ class aoiAccessor:
         # 添加下载时候 从最旧到最新添加 保持排序相同
         # 所以syncGidList从旧到新 顺序处理即可
         syncList = remoteGallery[start:end][::-1]
-        splitted = [syncList[i : i + 25] for i in range(0, len(syncList), 25)]
+        splitted = [syncList[i: i + 25] for i in range(0, len(syncList), 25)]
         taskList = []
         for syncList_x25 in splitted:
             gid_token_list = [[x["gid"], x["token"]] for x in syncList_x25]
@@ -1128,12 +1152,10 @@ class aoiAccessor:
                         return
                     gid, token, index = taskList.pop(0)
                 if index == -1:
-                    cachePath = path_join(self.cachePath, f"{gid}_{token}.jpg")
+                    cachePath = self.getCachePath(gid, token)
                     targetUrl = f"{targetServerUrl}/api/cover/{gid}_{token}.jpg"
                 else:
-                    cachePath = path_join(
-                        self.cachePath, f"{gid}_{token}_{index:08d}.jpg"
-                    )
+                    cachePath = self.getCachePath(gid, token, index)
                     targetUrl = (
                         f"{targetServerUrl}/api/Gallery/{gid}_{token}/{index:08d}.jpg"
                     )

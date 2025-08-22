@@ -5,37 +5,25 @@ import threading
 import zipfile
 import time
 import hashlib
-
+import shutil
 # ZIP_TMP_DIR = r"P:\\"
 # REMOTE_PATH = "onedrive:/EHBackups"
 # DB_PATH = r"E:\EHDownloads\api\NosqlDB.json"
 # GALLERY_PATH = r"E:\EHDownloads\Gallery"
 # COVER_PATH = r"E:\EHDownloads\cover"
-
-
-ZIP_TMP_DIR = r"P:\\"
-DB_PATH = r"E:\EHDownloads\api\NosqlDB.json"
-GALLERY_PATH = r"E:\EHDownloads\Gallery"
-COVER_PATH = r"E:\EHDownloads\cover"
-
-REMOTE_PATH = r"F:/EHBackups"
 # REMOTE_PATH = "onedrive:/EHBackups"
+
+
+# ZIP_TMP_DIR = r"/mnt/ramdisk"
+ZIP_TMP_DIR = r"/mnt/massiveStorage/EHBackups/tmp"
+DB_PATH = r"/mnt/storage/Exviewer/EHDownloads/api/NosqlDB.json"
+GALLERY_PATH = r"/mnt/storage/Exviewer/EHDownloads/Gallery"
+COVER_PATH = r"/mnt/storage/Exviewer/EHDownloads/cover"
+REMOTE_PATH = r"/mnt/massiveStorage/EHBackups/manual"
 
 
 def hash_gallery(gid_token):
     return str(int(hashlib.md5(gid_token.encode()).hexdigest(), 16) % 64 + 1)
-
-def execute(command_with_args):
-    try:
-        with subprocess.Popen(
-            command_with_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-        ) as proc:
-            (out, err) = proc.communicate()
-            return {"code": proc.returncode, "out": out.decode("utf-8").replace("\\n", "\n"), "error": err}
-    except FileNotFoundError as not_found_e:
-        return {"code": -20, "error": not_found_e}
-    except Exception as generic_e:
-        return {"code": -30, "error": generic_e}
 
 
 def zipDir(dirpath, outputAbsPath):
@@ -45,7 +33,7 @@ def zipDir(dirpath, outputAbsPath):
     :param outputAbsPath: 压缩文件保存绝对路径
     :return: None
     """
-    dirname = dirpath.split("\\")[-1]
+    dirname = dirpath.split("/")[-1]
     zipItem = zipfile.ZipFile(outputAbsPath, "w", zipfile.ZIP_DEFLATED)
     for path, dirnames, filenames in os.walk(dirpath):
         # 去掉目标跟路径，只对目标文件夹下边的文件及文件夹进行压缩
@@ -53,7 +41,7 @@ def zipDir(dirpath, outputAbsPath):
         for filename in filenames:
             zipItem.write(
                 os.path.join(path, filename),
-                os.path.join(dirname + "\\" + fpath, filename),
+                os.path.join(dirname + "/" + fpath, filename),
             )
     zipItem.close()
 
@@ -62,45 +50,38 @@ def uploader(gallery: str, sem: threading.Semaphore):  # abs path of gallery
     gid_token = os.path.split(gallery)[1]
     tmpZipPath = os.path.join(ZIP_TMP_DIR, gid_token + ".zip")
     zipDir(gallery, tmpZipPath)  # 直接覆盖
-    res = execute(
-        f"rclone copy {tmpZipPath} {REMOTE_PATH}/Gallery/{hash_gallery(gid_token)}")
-    if res["code"] == 0:
-        print(f"success {gid_token} hash={hash_gallery(gid_token)}")
-    else:
-        print(res)
+    # res = execute(f"rclone copy {tmpZipPath} {REMOTE_PATH}/Gallery/{hash_gallery(gid_token)}")
+    
+    os.makedirs(os.path.join(REMOTE_PATH, "Gallery", hash_gallery(gid_token)), exist_ok=True)
+    shutil.copy(tmpZipPath, os.path.join(REMOTE_PATH, "Gallery", hash_gallery(gid_token), f"{gid_token}.zip"))
+    print(f"uploaded {gid_token} to {REMOTE_PATH}/Gallery/{hash_gallery(gid_token)}/{gid_token}.zip")
     os.remove(tmpZipPath)
     sem.release()
 
 
 def deleter(gid_token: str, sem: threading.Semaphore):
     start = time.perf_counter()
-    res = execute(
-        f"rclone deletefile {REMOTE_PATH}/Gallery/{hash_gallery(gid_token)}/{gid_token}.zip")
-    print(gid_token, "delete over", time.perf_counter() - start)
-    if res["code"] != 0:
-        print(res)
+    os.remove(f"{REMOTE_PATH}/Gallery/{hash_gallery(gid_token)}/{gid_token}.zip")
     sem.release()
 
 
 if __name__ == "__main__":
     print("uploading DB")
     start = time.perf_counter()
-    res = execute(f"rclone copy {DB_PATH} {REMOTE_PATH} ")
+    res = os.system(f"rclone copy {DB_PATH} {REMOTE_PATH} ")
+    shutil.copy(DB_PATH, os.path.join(REMOTE_PATH, "NosqlDB.json"))
     print("over", time.perf_counter() - start)
-    if res["code"] != 0:
-        print(res)
-        exit(1)
-
     print("listing remote",  f"rclone lsjson  --files-only --max-depth 2 {REMOTE_PATH}/Gallery")
-    start = time.perf_counter()
-    res = execute(
-        f"rclone lsjson  --files-only --max-depth 2 {REMOTE_PATH}/Gallery")
-    print("over", time.perf_counter() - start)
-    if res["code"] != 0:
-        print(res)
-        exit(1)
-    uploadedList = [item["Name"].split(".")[0]
-                    for item in json.loads(res["out"])]
+    
+    
+    uploadedList = []
+
+    files = os.walk(os.path.join(REMOTE_PATH, "Gallery"))
+    print("remote files:")
+    for root, dirs, files in files:
+        for file in files:
+            print(file)
+            uploadedList.append(file.split(".zip")[0]) 
 
     print("远程已存在 {}".format(len(uploadedList)))
 
@@ -110,7 +91,6 @@ if __name__ == "__main__":
         if gid_token not in uploadedList
     ]
     print("need upload {}".format(len(needUploadList)))
-
     local = os.listdir(GALLERY_PATH)
     needDeleteGTList = [
         gid_token
@@ -119,19 +99,19 @@ if __name__ == "__main__":
     ]
 
     print("need delete {}".format(len(needDeleteGTList)))
-    del_sem = threading.Semaphore(16)
+    del_sem = threading.Semaphore(1)
     for gid_token in needDeleteGTList:
         del_sem.acquire()
         threading.Thread(target=deleter, args=(gid_token, del_sem)).start()
 
-    [del_sem.acquire() for _ in range(16)]
+    [del_sem.acquire() for _ in range(1)]
 
-    upl_sem = threading.Semaphore(5)
+    upl_sem = threading.Semaphore(1)
     for gallery in needUploadList:
         upl_sem.acquire()
         threading.Thread(target=uploader, args=(gallery, upl_sem)).start()
 
-    [upl_sem.acquire() for _ in range(5)]
+    [upl_sem.acquire() for _ in range(1)]
     print("upload over")
     print("uploading cover")
     # os.system(f"rclone sync D:\EHDownloads\cover {REMOTE_PATH}\cover -P --transfers=32")

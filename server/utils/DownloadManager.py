@@ -11,7 +11,6 @@ SIGNAL_SUCCESS = 0
 SIGNAL_FAILURE = 1
 SIGNAL_INTERRUPT = 2
 
-
 class worker():
     def __init__(self, aioAccessorInstance, loop: asyncio.AbstractEventLoop, gid: int, token: str, g_data=None) -> None:
         self.aioAccessorInstance = aioAccessorInstance
@@ -39,7 +38,7 @@ class worker():
                     self.imgPathMap[index] = localImg
                 else:
                     os.path.exists(localImg) and os.remove(localImg)
-                    self.noLocalImageIndexList.append(index)          
+                    self.noLocalImageIndexList.append(index)
             else:
                 self.noLocalImageIndexList.append(index)
         return self.fileCount - len(self.noLocalImageIndexList)
@@ -77,7 +76,7 @@ class worker():
                 logger.error(str(e))
                 logger.error(f"下载任务已终止  {self.gid}_{self.token}")
                 if self.aioAccessorInstance.db.download[self.gid]:
-                    self.aioAccessorInstance.db.download[self.gid]['state']=DOWNLOAD_STATE.FINISHED
+                    self.aioAccessorInstance.db.download[self.gid]['state'] = DOWNLOAD_STATE.FINISHED
                 return
             self.aioAccessorInstance.db.download[self.gid]['state'] = DOWNLOAD_STATE.NOW_DOWNLOADING
 
@@ -109,10 +108,14 @@ class worker():
                         os.makedirs(saveDir)
                     for i in range(self.fileCount):
                         dst = os.path.join(saveDir, f"{(i + 1):08d}.jpg")
-                        src = self.imgPathMap[i]         
+                        src = self.imgPathMap[i]
                         if not os.path.exists(dst):
-                            shutil.move(src, dst)
-                            logger.debug(f"mv {src} -> {dst}")
+                            if self.aioAccessorInstance.link_or_move == 'move':
+                                shutil.move(src, dst)
+                                logger.debug(f"mv {src} --> {dst}")
+                            else:
+                                os.link(src, dst)
+                                logger.debug(f"ln {src} --> {dst}")
                     g_data_json_save_path = os.path.join(
                         saveDir, "g_data.json")
                     with open(g_data_json_save_path, "w", encoding="utf-8") as f:
@@ -120,9 +123,13 @@ class worker():
                     logger.debug(f"保存 g_data.json 到 {g_data_json_save_path}")
                     cover_save_path = os.path.join(
                         self.aioAccessorInstance.coverPath, f"{self.gid}_{self.token}.jpg")
-                    shutil.move(self.coverPath, cover_save_path) if not os.path.exists(
-                        cover_save_path) else None
-                    logger.debug(f"mv {self.coverPath} -> {cover_save_path}")
+                    if not os.path.exists(cover_save_path):
+                        if self.aioAccessorInstance.link_or_move == 'move':
+                            shutil.move(self.coverPath, cover_save_path)
+                            logger.debug(f"mv {self.coverPath} -> {cover_save_path}")
+                        else:
+                            os.link(self.coverPath, cover_save_path)
+                            logger.debug(f"ln {self.coverPath} -> {cover_save_path}")
                     logger.info(f"{self.gid}_{self.token} 下载完成")
                 except Exception as e:
                     logger.error(f"{self.gid}_{self.token} 后续处理错误 {e}")
@@ -145,7 +152,7 @@ class worker():
                     index = self.noLocalImageIndexList.pop(0)
                 if not self.interrupted:
                     try:
-                        imgPath = await self.aioAccessorInstance.getGalleryImage(self.gid, self.token, index+1)                        
+                        imgPath = await self.aioAccessorInstance.getGalleryImage(self.gid, self.token, index+1)
                         self.imgPathMap[index] = imgPath
                         await asyncio.sleep(1/1000)
                         await self.channel.put(SIGNAL_SUCCESS)
