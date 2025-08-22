@@ -1,8 +1,11 @@
 # # 这个最小 但是只有amd64成功了
-FROM python:3.9-slim-buster 
+# FROM python:3.9-slim-buster 
 
 # 这个兼容最好 可以安装成功所有的
 # FROM python:3.9.6-buster
+
+
+FROM python:3.9
 
 ADD ./ /Exviewer
 WORKDIR /Exviewer
