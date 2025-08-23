@@ -189,7 +189,8 @@ class aoiAccessor:
         """
         try:
             # logger.error(f"img loading {url}")
-            resp = await self.session.request("GET", url, headers=self.headers, proxy=self.proxy, timeout=timeOut)
+            # resp = await self.session.request("GET", url, headers=self.headers, proxy=self.proxy, timeout=timeOut)
+            resp = await self.session.get(url, headers=self.headers, proxy=self.proxy, timeout=timeOut)
             bytes = await resp.read()
             if checkImg(bytes):
                 return bytes
