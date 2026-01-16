@@ -69,6 +69,30 @@ def getProxy():
 
 timeOut = ClientTimeout(total=30)
 
+@AsyncCacheWarper(
+        cacheContainer=LRUCache(maxsize=8, ttl=5*60, default=None),
+    )
+async def get_single_link_files_recursive(root_path):
+    single_link_files = []
+    stack = [root_path]
+    while stack:
+        current_dir = stack.pop()
+        try:
+            with os.scandir(current_dir) as it:
+                for entry in it:
+                    try:
+                        if entry.is_file():
+                            if entry.stat().st_nlink == 1:
+                                single_link_files.append(entry.path)
+                        elif entry.is_dir():
+                            stack.append(entry.path)
+                    except OSError:
+                        continue
+        except OSError:
+            continue
+    return single_link_files
+
+
 styleMatch = re.compile(
     r"width:(\d+)px;height:(\d+)px;background:transparent url\(([^\)]+)\) -?(\d+)(?:px)? 0 (?:\/ )?(cover )?no-repeat"
 )
@@ -153,6 +177,7 @@ class aoiAccessor:
                 url, headers=self.headers, proxy=self.proxy, timeout=timeOut
             )
             html = await resp.text()
+            logger.error(str(resp))
             # logger.info(f"session.get HTML len=({len(html)}):[{html}]")
             removeIndex = html.find("<html")
             if removeIndex != -1:
@@ -721,29 +746,22 @@ class aoiAccessor:
             return 0
         return max(indexList) + 1
 
-    def getDiskCacheSize(self) -> str:
-        # size = sum(
-        #     os.path.getsize(path_join(self.cachePath, file))
-        #     for file in os.listdir(self.cachePath)
-        # )
-        # return f"{size / 1024 / 1024:.2f}MB"
+    async def getDiskCacheSize(self) -> str:
+        single_link_files = await get_single_link_files_recursive(self.cachePath)
         size = 0
-        for file in os.walk(self.cachePath):
-            for f in file[2]:
-                size += os.path.getsize(path_join(file[0], f))
+        for file in single_link_files:
+            size += os.path.getsize(file)
         return f"{size / 1024 / 1024:.2f}MB"
 
-    def clearDiskCache(self) -> str:
-        size = self.getDiskCacheSize()
-        # shutil.rmtree(self.cachePath, ignore_errors=True)
-        # os.makedirs(self.cachePath , exist_ok=True)
-        for entry in os.listdir(self.cachePath):
-            entry_path = path_join(self.cachePath, entry)
-            if os.path.isfile(entry_path):
-                os.remove(entry_path)
-            elif os.path.isdir(entry_path):
-                shutil.rmtree(entry_path, ignore_errors=True)
-        return size
+    async def clearDiskCache(self) -> str:
+        single_link_files = await get_single_link_files_recursive(self.cachePath)
+        size = 0
+        for file in single_link_files:
+            size += os.path.getsize(file)
+            os.remove(file)
+        #清除空文件夹
+        pass
+        return f"{size / 1024 / 1024:.2f}MB"
 
     async def addDownloadRecordFromZip(self, gid, token, zipBytes):
         extNames = ["jpg", "JPG", "png", "PNG", "gif", "GIF"]

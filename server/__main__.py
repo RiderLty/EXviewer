@@ -503,14 +503,14 @@ async def asyncCover(filename: str):
 
 
 @app.get("/api/getDiskCacheSize")
-def getDiskCacheSize():
-    text = aioPa.getDiskCacheSize()
+async def getDiskCacheSize():
+    text = await aioPa.getDiskCacheSize()
     return {"msg": text}
 
 
 @app.get("/api/clearDiskCache")
-def clearDiskCache():
-    text = aioPa.clearDiskCache()
+async def clearDiskCache():
+    text = await aioPa.clearDiskCache()
     return {"msg": text}
 
 

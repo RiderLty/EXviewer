@@ -24,7 +24,8 @@ blockTags = {
     "female:scat",
     "female:farting",
     "male:scat",
-    "female:netorase"
+    "female:netorase",
+    "female:insect"
 }
 favIndex = 5
 
