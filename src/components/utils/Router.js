@@ -54,6 +54,19 @@ export function SwitchRouter(props) {
         }
     }, [location])
 
+    useEffect(() => {
+        const handleKeyUp = (event) => {
+            if (event.key === 'Escape') {
+                window.history.go(-1)
+            }
+        }
+
+        window.addEventListener('keyup', handleKeyUp)
+        return () => {
+            window.removeEventListener('keyup', handleKeyUp)
+        }
+    }, [])
+
     const openNew = (pathname, search) => {
         const target = `${pathname}${search}`
         if (history.current[history.current.length - 1] === target) {
