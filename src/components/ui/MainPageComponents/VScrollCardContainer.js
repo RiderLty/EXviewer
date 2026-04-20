@@ -65,12 +65,12 @@ export default function VScrollCardContainer(props) {
 
     const cardWidth = useMemo(() => {
         if (break_matches) {
-            return (document.body.clientWidth - 90) / 2
+            return (documentWidth - 90) / 2
         } else {
             if (small_matches) {
-                return document.body.clientWidth - 60
+                return documentWidth - 60
             } else {
-                return document.body.clientWidth - 20
+                return documentWidth - 20
             }
         }
     }, [documentWidth, break_matches, small_matches])
@@ -83,12 +83,12 @@ export default function VScrollCardContainer(props) {
             if (index % 2 === 0) {
                 return border
             } else {
-                return border * 2 + (document.body.clientWidth - 90) / 2
+                return border * 2 + (documentWidth - 90) / 2
             }
         } else {
             return border
         }
-    }, [break_matches, small_matches])
+    }, [break_matches, small_matches, documentWidth])
 
     const calTop = useCallback((index) => { //60 搜索框空出来
         const border = small_matches ? 30 : 10

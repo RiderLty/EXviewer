@@ -1,5 +1,5 @@
 import { IconButton } from '@mui/material';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Grid } from 'react-virtualized';
 import { useRefState } from '../utils/MyHooks';
 import { getSetting, useSettingBind } from '../utils/SettingHooks';
@@ -89,10 +89,10 @@ function ViewPageUI(props) {
     const gid = props.gid
     const token = props.token
     const pageCount = props.pages
-    const urlInfos = Array(props.pages).fill().map((_, i) => ({
+    const urlInfos = useMemo(() => Array(props.pages).fill().map((_, i) => ({
         url: getGalleryImgUrl(gid, token, i + 1),
         index: i + 1
-    }))
+    })), [gid, token, props.pages])
     const [pageNumRef, pageNum, _setPageNum] = useRefState(Number(localStorage.getItem(`P_${gid}`)) || 1)
     const setPageNum = (value) => {
         if (pageNumRef.current === value) {

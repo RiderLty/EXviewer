@@ -124,7 +124,7 @@ function MainPage_inner(props) {
 
     const downloadingPageCardGidList = useMemo(() => {
         return cardGidList.filter((gid) => cardInfoMap[gid] && syncedDB.download[gid] && cardInfoMap[gid].pages !== syncedDB.download[gid].success)
-    }, [cardGidList])
+    }, [cardGidList, cardInfoMap, toJS(syncedDB.download)])
 
     const syncDownloadDBToHooks = (
         forceUpdate,

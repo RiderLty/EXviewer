@@ -22,12 +22,6 @@ import BackButton from './components/utils/BackButton';
 import { getWsUrl } from './components/api/serverApi';
 
 function App_inner() {
-  const wssOrWS = window.location.protocol === "https:" ? "wss:" : "ws:"
-  let wsUrl = `${wssOrWS}//${window.location.host}/`
-  if (window.location.host.includes("3000")) {
-    wsUrl = wsUrl.replace("3000", "7964")
-  }
-
   useWsHandeler(getWsUrl('websocket/syncDict/download'), syncedDB.getEventHandeler('download'))
   useWsHandeler(getWsUrl('websocket/syncDict/favorite'), syncedDB.getEventHandeler('favorite'))
   useWsHandeler(getWsUrl('websocket/syncDict/card_info'), syncedDB.getEventHandeler('card_info'))

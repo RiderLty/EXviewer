@@ -99,27 +99,8 @@ export function useWsHandeler(wsUrl, onEvent) {
                 ws.current.close()
             }
         }
-    })
+    }, [])
     return null
-}
-
-
-const delKeyFromObj = (dict, key) => {
-    const newDict = { ...dict }
-    delete newDict[key]
-    return newDict
-}
-
-const deleteKey = (key) => {
-    return (dict) => {
-        return delKeyFromObj(dict, key)
-    }
-}
-
-const combineDict = (newDict) => {
-    return (oldDict) => {
-        return { ...oldDict, ...newDict }
-    }
 }
 
 
@@ -218,6 +199,6 @@ export default function useSyncDict(wsUrl) {
                 ws.current.close()
             }
         }
-    })
+    }, [])
     return data
 }
