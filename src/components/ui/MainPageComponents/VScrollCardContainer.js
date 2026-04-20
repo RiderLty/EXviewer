@@ -136,7 +136,7 @@ export default function VScrollCardContainer(props) {
     }
     useEventListener('resize', onWindowResize)
 
-    const resizeKey = useMemo(() => JSON.stringify([small_matches, break_matches]), [small_matches, break_matches])
+    const resizeKey = useMemo(() => JSON.stringify([small_matches, break_matches, documentWidth]), [small_matches, break_matches, documentWidth])
 
 
     const [ref, isVisible] = useIsVisible();
@@ -175,7 +175,7 @@ export default function VScrollCardContainer(props) {
                 cellSizeAndPositionGetter={cellSizeAndPositionGetter}
                 onScroll={handelVScroll}
                 height={(documentHeight || document.body.clientHeight)}
-                width={(documentWidth || document.body.clientWidth) + 100}
+                width={(documentWidth || document.body.clientWidth)}
                 verticalOverscanSize={25}
                 id={props.containerUID}
             />
