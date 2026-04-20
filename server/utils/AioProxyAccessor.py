@@ -179,7 +179,6 @@ class aoiAccessor:
                 url, headers=self.headers, proxy=self.proxy, timeout=timeOut
             )
             html = await resp.text()
-            logger.error(str(resp))
             # logger.info(f"session.get HTML len=({len(html)}):[{html}]")
             removeIndex = html.find("<html")
             if removeIndex != -1:
