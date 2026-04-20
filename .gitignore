@@ -31,3 +31,4 @@ yarn-error.log*
 *.pyc
 server/config.json
 .venv
+server/tools/checkPassed.json
