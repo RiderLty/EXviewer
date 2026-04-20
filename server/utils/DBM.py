@@ -211,8 +211,16 @@ class wsDBMBinder():
             self._active_connections.remove(ws)
 
     async def _broadcast(self, msg):
-        for ws in self._active_connections:
-            await ws.send_json(msg)
+        dead_connections = []
+        async def _send_to(ws):
+            try:
+                await asyncio.wait_for(ws.send_json(msg), timeout=10)
+            except Exception:
+                dead_connections.append(ws)
+        await asyncio.gather(*[_send_to(ws) for ws in self._active_connections])
+        for ws in dead_connections:
+            if ws in self._active_connections:
+                self._active_connections.remove(ws)
 
     def _handel_message(self, msg, ws):
         if msg == "sync":
