@@ -148,6 +148,9 @@ class EHDBM():
     def __contains__(self, key: int) -> bool:
         return key in self.cache
 
+    def __len__(self) -> int:
+        return len(self.cache)
+
 
     def search(self, cond: QueryLike) -> List[Document]:
         return self.db.search(cond)
