@@ -15,7 +15,7 @@ import ListItemText from '@mui/material/ListItemText';
 import { styled } from '@mui/material/styles';
 import Switch from '@mui/material/Switch';
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useSetting } from '../../utils/SettingHooks';
 import SwipeVerticalIcon from '@mui/icons-material/SwipeVertical';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -77,11 +77,15 @@ export default function ViewSettingPanel(props) {
     const [switchPagination, setSwitchPagination] = useSetting("分页模式", false);
     const [switchDirection, setSwitchDirection] = useSetting("阅读方向", true);
     const [readVertical, setReadVertical] = useSetting("竖屏阅读", false);
+    const switchDirectionRef = useRef(switchDirection);
+    switchDirectionRef.current = switchDirection;
+    const readVerticalRef = useRef(readVertical);
+    readVerticalRef.current = readVertical;
     const [rotateZ, setRotateZ] = useState(readVertical ? 270 : (switchDirection ? 0 : 180))
 
     const onReadDirectionButtonChanged = () => {
-        if (switchDirection === false) {
-            if (readVertical === false) {
+        if (switchDirectionRef.current === false) {
+            if (readVerticalRef.current === false) {
                 setReadVertical(true)
                 setRotateZ(old => old + 90)
             } else {

@@ -28,7 +28,7 @@ export function useLocalStorage(key, defaultValue) {
     }
     useEffect(() => {
         const handler = (e) => {
-            if (e.key === key) {
+            if (e.key === key && e.newValue !== value) {
                 _setValue(e.newValue)
             }
         }
@@ -38,7 +38,7 @@ export function useLocalStorage(key, defaultValue) {
             window.removeEventListener('useLocalStorageEvent', handler)
             window.removeEventListener('storage', handler)
         }
-    })
+    }, [value])
     return [value, setValue]
 }
 

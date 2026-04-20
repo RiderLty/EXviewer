@@ -21,10 +21,12 @@ export default function TwoWaySwiper({ isReverse, value, setValue, children }) {
     const [controller, setController] = useState(null)
     const controllerRef = useRef(null)
     const privateValueRef = useRef(out2in());
+    const isSlideFromEffect = useRef(false);
     const revChildren = useMemo(() => isReverse ? children.slice().reverse() : children, [isReverse, children])
     
     
     const setSwiperController = (swiperInstance) => {
+        isSlideFromEffect.current = true;
         swiperInstance.slideTo(privateValueRef.current, 0)
         controllerRef.current = swiperInstance
         setController(swiperInstance)
@@ -32,6 +34,10 @@ export default function TwoWaySwiper({ isReverse, value, setValue, children }) {
 
     const handelSlideChange = (e) => {
         privateValueRef.current = e.activeIndex;
+        if (isSlideFromEffect.current) {
+            isSlideFromEffect.current = false;
+            return;
+        }
         setValue(in2out());
     }
 
@@ -41,6 +47,7 @@ export default function TwoWaySwiper({ isReverse, value, setValue, children }) {
             value > children.length && setValue(children.length)
             if (out2in() !== privateValueRef.current) {
                 privateValueRef.current = out2in();
+                isSlideFromEffect.current = true;
                 controllerRef.current.slideTo(privateValueRef.current, 0)
             }
         }
@@ -49,6 +56,7 @@ export default function TwoWaySwiper({ isReverse, value, setValue, children }) {
     useEffect(() => {
         if (controllerRef.current != null) {
             privateValueRef.current = out2in();
+            isSlideFromEffect.current = true;
             controllerRef.current.slideTo(privateValueRef.current, 0)
         }
     }, [children])
