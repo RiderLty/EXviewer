@@ -6,6 +6,15 @@ body::-webkit-scrollbar {
   width: 0 !important;
 }
 
+/* Hide native scrollbar on react-virtualized Collection containers */
+.ReactVirtualized__Collection::-webkit-scrollbar {
+  width: 0 !important;
+  display: none !important;
+}
+.ReactVirtualized__Collection {
+  scrollbar-width: none !important;
+}
+
 .clickableDomOnSelected{
   transition: all s0.5s ease;
   border: 1px solid #00bcd4 !important ;

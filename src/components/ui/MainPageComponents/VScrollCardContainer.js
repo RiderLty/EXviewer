@@ -8,6 +8,7 @@ import { observer } from "mobx-react";
 import { useEventListener } from 'ahooks';
 import { Box } from '@mui/material';
 import { useSmallMatches, useCardDoubleRow } from '../../utils/adaptiveBoxes'
+import CustomScrollbar from '../../utils/CustomScrollbar'
 
 function useIsVisible() {
     const [isVisible, setIsVisible] = useState(false);
@@ -179,6 +180,7 @@ export default function VScrollCardContainer(props) {
                 verticalOverscanSize={25}
                 id={props.containerUID}
             />
+            <CustomScrollbar scrollContainerId={props.containerUID} />
             <div
                 style={{
                     position: "fixed",
