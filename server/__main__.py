@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import ssl
+import zlib
 from os.path import join as path_join
 import threading
 from time import perf_counter
@@ -11,6 +12,7 @@ from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSoc
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import FileResponse, StreamingResponse
 from tinydb import TinyDB
 from tinydb.middlewares import CachingMiddleware
@@ -263,16 +265,72 @@ app = FastAPI()
 
 
 class SelectiveGZipMiddleware:
-    """GZip中间件，但跳过SSE路径（SSE流永不结束，GZip会永远缓冲数据）"""
-    def __init__(self, app, minimum_size=1000):
+    """GZip中间件：普通请求用标准GZip，SSE流用Z_SYNC_FLUSH实时压缩"""
+    def __init__(self, app, minimum_size=1000, compresslevel=6):
         self.app = app
         self.gzip_app = GZipMiddleware(app, minimum_size=minimum_size)
+        self.compresslevel = compresslevel
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http" and scope.get("path", "").startswith("/api/sse/"):
+            headers = Headers(scope=scope)
+            if "gzip" in headers.get("Accept-Encoding", ""):
+                responder = SSEGZipResponder(self.app, self.compresslevel)
+                await responder(scope, receive, send)
+                return
             await self.app(scope, receive, send)
         else:
             await self.gzip_app(scope, receive, send)
+
+
+class SSEGZipResponder:
+    """SSE专用GZip压缩：每个chunk用Z_SYNC_FLUSH刷新，浏览器可增量解压"""
+    def __init__(self, app, compresslevel=6):
+        self.app = app
+        self.compresslevel = compresslevel
+        self.send = None
+        self.initial_message = None
+        self.cobj = None
+        self.started = False
+
+    async def __call__(self, scope, receive, send):
+        self.send = send
+        await self.app(scope, receive, self.send_with_gzip)
+
+    async def send_with_gzip(self, message):
+        msg_type = message["type"]
+        if msg_type == "http.response.start":
+            self.initial_message = message
+            return
+        if msg_type != "http.response.body":
+            await self.send(message)
+            return
+
+        body = message.get("body", b"")
+        more_body = message.get("more_body", False)
+
+        if not self.started:
+            self.started = True
+            self.cobj = zlib.compressobj(self.compresslevel, zlib.DEFLATED, 31)
+            headers = MutableHeaders(raw=self.initial_message["headers"])
+            headers["Content-Encoding"] = "gzip"
+            headers.add_vary_header("Accept-Encoding")
+            del headers["Content-Length"]
+            await self.send(self.initial_message)
+
+        if body:
+            compressed = self.cobj.compress(body) + self.cobj.flush(zlib.Z_SYNC_FLUSH)
+            message["body"] = compressed
+        else:
+            message["body"] = b""
+
+        if not more_body:
+            # 流结束，写出尾部
+            trailer = self.cobj.flush(zlib.Z_FINISH)
+            message["body"] += trailer
+            message["more_body"] = False
+
+        await self.send(message)
 
 
 app.add_middleware(SelectiveGZipMiddleware, minimum_size=1000)
