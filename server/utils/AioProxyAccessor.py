@@ -12,7 +12,12 @@ import time
 from aiohttp import ClientSession, ClientTimeout, ClientResponse
 from cacheout import LRUCache
 from fastapi import HTTPException
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel
+try:
+    from pydantic import RootModel
+except ImportError:
+    # Pydantic v1 compatibility
+    RootModel = None
 from tinydb import Query
 from utils.MakePDF import img2pdf
 from utils.AsyncCacheWarper import AsyncCacheWarper
@@ -34,12 +39,19 @@ class commentBody(BaseModel):
     commentID: int
 
 
-class downloadListBody(RootModel[List[List[Union[int, str]]]]):
-    pass
+if RootModel is not None:
+    class downloadListBody(RootModel[List[List[Union[int, str]]]]):
+        pass
 
+    class gidTokenListBody(RootModel[List[List[Union[int, str]]]]):
+        pass
+else:
+    # Pydantic v1: use __root__ field
+    class downloadListBody(BaseModel):
+        __root__: List[List[Union[int, str]]]
 
-class gidTokenListBody(RootModel[List[List[Union[int, str]]]]):
-    pass
+    class gidTokenListBody(BaseModel):
+        __root__: List[List[Union[int, str]]]
 
 
 class NOSQL_DBS:
