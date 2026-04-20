@@ -15,33 +15,65 @@ export function useWsHandeler(wsUrl, onEvent) {
     const version = useRef(-1)
     const state = useRef(INIT)
     const ws = useRef(null)
+    const pendingSets = useRef({})
+    const pendingDeletes = useRef(new Set())
+    const flushTimerRef = useRef(null)
+
+    const flush = () => {
+        flushTimerRef.current = null
+        const sets = pendingSets.current
+        const deletes = [...pendingDeletes.current]
+        pendingSets.current = {}
+        pendingDeletes.current = new Set()
+        if (Object.keys(sets).length > 0 || deletes.length > 0) {
+            onEvent('batch', sets, deletes)
+        }
+    }
+
+    const scheduleFlush = () => {
+        if (flushTimerRef.current === null) {
+            flushTimerRef.current = setTimeout(flush, 0)
+        }
+    }
+
+    const cancelFlush = () => {
+        if (flushTimerRef.current !== null) {
+            clearTimeout(flushTimerRef.current)
+            flushTimerRef.current = null
+        }
+        pendingSets.current = {}
+        pendingDeletes.current = new Set()
+    }
+
     useEffect(() => {
         if (ws.current) return;
         const onmessage = (event) => {
             const recv = JSON.parse(event.data);
-            // console.log(recv)
             try {
                 if (state.current === READY) {
                     if (recv.current === version.current) {
                         version.current = recv.next;
                         if (recv.action === SET_KV) {//set
-                            // setData(data => ({ ...data, [recv.key]: recv.value }))
-                            onEvent('set', recv.key, recv.value)
+                            pendingSets.current[recv.key] = recv.value
+                            pendingDeletes.current.delete(recv.key)
+                            scheduleFlush()
                         } else if (recv.action === DEL_K) {//delete
-                            // setData(data => ({ ...data, [recv.key]: undefined }))
-                            onEvent('del', recv.key)
+                            delete pendingSets.current[recv.key]
+                            pendingDeletes.current.add(recv.key)
+                            scheduleFlush()
                         } else if (recv.action === LOAD) {
-                            // setData(recv.data)
+                            cancelFlush()
                             onEvent('load', recv.data)
                         }
                     } else {
+                        cancelFlush()
                         state.current = WAITING;
                         ws.current.send("sync")
                     }
                 } else {
                     if (recv.action === SYNC_ALL) {//sync all
                         version.current = recv.next
-                        // setData(recv.data)
+                        cancelFlush()
                         onEvent('load', recv.data)
                         state.current = READY;
                     }
@@ -62,6 +94,7 @@ export function useWsHandeler(wsUrl, onEvent) {
             ws.current.addEventListener("open", onopen)
         }
         return () => {
+            cancelFlush()
             if (ws.current && ws.current.readyState === 1) {
                 ws.current.close()
             }
@@ -98,6 +131,42 @@ export default function useSyncDict(wsUrl) {
     const version = useRef(-1)
     const state = useRef(INIT)
     const ws = useRef(null)
+    const pendingSets = useRef({})
+    const pendingDeletes = useRef(new Set())
+    const flushTimerRef = useRef(null)
+
+    const flush = () => {
+        flushTimerRef.current = null
+        const sets = pendingSets.current
+        const deletes = [...pendingDeletes.current]
+        pendingSets.current = {}
+        pendingDeletes.current = new Set()
+        if (Object.keys(sets).length > 0 || deletes.length > 0) {
+            setData(old => {
+                let newDict = { ...old.dict, ...sets }
+                for (const key of deletes) {
+                    delete newDict[key]
+                }
+                return { keySet: new Set(Object.keys(newDict)), dict: newDict }
+            })
+        }
+    }
+
+    const scheduleFlush = () => {
+        if (flushTimerRef.current === null) {
+            flushTimerRef.current = setTimeout(flush, 0)
+        }
+    }
+
+    const cancelFlush = () => {
+        if (flushTimerRef.current !== null) {
+            clearTimeout(flushTimerRef.current)
+            flushTimerRef.current = null
+        }
+        pendingSets.current = {}
+        pendingDeletes.current = new Set()
+    }
+
     useEffect(() => {
         if (ws.current) return;
         const onmessage = (event) => {
@@ -107,19 +176,26 @@ export default function useSyncDict(wsUrl) {
                     if (recv.current === version.current) {
                         version.current = recv.next;
                         if (recv.action === SET_KV) {//set
-                            setData(combineDict({ [recv.key]: recv.value }))
+                            pendingSets.current[recv.key] = recv.value
+                            pendingDeletes.current.delete(recv.key)
+                            scheduleFlush()
                         } else if (recv.action === DEL_K) {//delete
-                            setData(deleteKey(recv.key))
+                            delete pendingSets.current[recv.key]
+                            pendingDeletes.current.add(recv.key)
+                            scheduleFlush()
                         } else if (recv.action === LOAD) {
+                            cancelFlush()
                             setData(recv.data)
                         }
                     } else {
+                        cancelFlush()
                         state.current = WAITING;
                         ws.current.send("sync")
                     }
                 } else {
                     if (recv.action === SYNC_ALL) {//sync all
                         version.current = recv.next
+                        cancelFlush()
                         setData(recv.data)
                         state.current = READY;
                     }
@@ -137,6 +213,7 @@ export default function useSyncDict(wsUrl) {
         ws.current.addEventListener("message", onmessage)
         ws.current.addEventListener("open", onopen)
         return () => {
+            cancelFlush()
             if (ws.current && ws.current.readyState === 1) {
                 ws.current.close()
             }

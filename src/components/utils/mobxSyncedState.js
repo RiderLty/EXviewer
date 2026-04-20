@@ -1,5 +1,5 @@
 
-import { makeAutoObservable } from "mobx";
+import { makeAutoObservable, runInAction } from "mobx";
 
 class GlobalState {
   g_data = {}
@@ -34,6 +34,19 @@ class GlobalState {
     console.timeEnd("load_data")
   }
 
+  batch_update(attrName, sets, deletes) {
+    runInAction(() => {
+      for (const [key, value] of Object.entries(sets)) {
+        this[attrName][key] = value
+        this.keys[attrName].add(key)
+      }
+      for (const key of deletes) {
+        delete this[attrName][key]
+        this.keys[attrName].delete(key)
+      }
+    })
+  }
+
   getEventHandeler(attrName) {
     return (...args) => {
       // console.log(...args)
@@ -43,6 +56,8 @@ class GlobalState {
         this.del_k(attrName, args[1])
       } else if (args[0] === 'load') {
         this.load_data(attrName, args[1])
+      } else if (args[0] === 'batch') {
+        this.batch_update(attrName, args[1], args[2])
       }
     }
   }
