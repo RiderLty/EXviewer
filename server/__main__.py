@@ -11,7 +11,7 @@ from fastapi import FastAPI, HTTPException, Request, Response, WebSocket, WebSoc
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, StreamingResponse
 from tinydb import TinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
@@ -19,7 +19,7 @@ from uvicorn import Config, Server
 from utils.BlockRules import getRulesChecker
 from utils.HTMLParser import setParserUtcOffset
 from utils.AioProxyAccessor import NOSQL_DBS, aoiAccessor, commentBody, downloadListBody, gidTokenListBody
-from utils.DBM import wsDBMBinder, EHDBM
+from utils.DBM import EHDBM, SSEDBMBinder, DOWNLOAD_STATE, FAVORITE_STATE, LOAD
 from utils.tools import logger, makeTrackableException, printTrackableException, getUTCOffset
 from utils.AutoTask import autoTask
 import coloredlogs
@@ -206,11 +206,39 @@ class CachingMiddlewareAutoWrite(CachingMiddleware):
 
 NOSQL_CACHE = CachingMiddlewareAutoWrite(JSONStorage)
 NOSQL_DB = TinyDB(DB_PATH, storage=NOSQL_CACHE)
-g_data_wsBinder = wsDBMBinder(NOSQL_DB.table('g_data'), serverLoop)
-download_wsBinder = wsDBMBinder(NOSQL_DB.table('download'), serverLoop)
-favorite_wsBinder = wsDBMBinder(NOSQL_DB.table('favorite'), serverLoop)
-card_info_wsBinder = wsDBMBinder(NOSQL_DB.table('card_info'), serverLoop)
-history_wsBinder = wsDBMBinder(NOSQL_DB.table('history'), serverLoop)
+g_data_sseBinder = SSEDBMBinder(NOSQL_DB.table('g_data'), serverLoop, 'g_data')
+download_sseBinder = SSEDBMBinder(NOSQL_DB.table('download'), serverLoop, 'download')
+favorite_sseBinder = SSEDBMBinder(NOSQL_DB.table('favorite'), serverLoop, 'favorite')
+card_info_sseBinder = SSEDBMBinder(NOSQL_DB.table('card_info'), serverLoop, 'card_info')
+history_sseBinder = SSEDBMBinder(NOSQL_DB.table('history'), serverLoop, 'history')
+
+SYNC_DICT_BINDERS = {
+    'g_data': g_data_sseBinder,
+    'download': download_sseBinder,
+    'favorite': favorite_sseBinder,
+    'card_info': card_info_sseBinder,
+    'history': history_sseBinder,
+}
+
+
+async def subscribe_all_sync_dict(versions: dict):
+    """合并所有syncDict频道的SSE订阅，单连接多路复用。"""
+    q = asyncio.Queue()
+    for binder in SYNC_DICT_BINDERS.values():
+        binder.add_subscriber(q)
+    try:
+        for name, binder in SYNC_DICT_BINDERS.items():
+            client_ver = versions.get(name, -1)
+            if client_ver != binder.version:
+                yield f"data: {json.dumps({'channel': name, 'action': LOAD, 'data': binder.getDict(), 'next': binder.version})}\n\n"
+        while True:
+            action = await q.get()
+            yield f"data: {json.dumps(action)}\n\n"
+    except (asyncio.CancelledError, GeneratorExit):
+        pass
+    finally:
+        for binder in SYNC_DICT_BINDERS.values():
+            binder.remove_subscriber(q)
 
 aioPa = aoiAccessor(
     headers=headers,
@@ -219,12 +247,12 @@ aioPa = aoiAccessor(
     galleryPath=GALLERY_PATH,
     link_or_move=LINK_OR_MOVE,
     db=NOSQL_DBS(
-        g_data_wsBinder.getDBM(),
-        download_wsBinder.getDBM(),
-        favorite_wsBinder.getDBM(),
-        card_info_wsBinder.getDBM(),
+        g_data_sseBinder.getDBM(),
+        download_sseBinder.getDBM(),
+        favorite_sseBinder.getDBM(),
+        card_info_sseBinder.getDBM(),
         EHDBM(NOSQL_DB.table('father_tree'), serverLoop, None),
-        history_wsBinder.getDBM()
+        history_sseBinder.getDBM()
     ),
     loop=serverLoop,
     history_limit=HISTORY_LIMIT
@@ -232,7 +260,22 @@ aioPa = aoiAccessor(
 
 
 app = FastAPI()
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+
+class SelectiveGZipMiddleware:
+    """GZip中间件，但跳过SSE路径（SSE流永不结束，GZip会永远缓冲数据）"""
+    def __init__(self, app, minimum_size=1000):
+        self.app = app
+        self.gzip_app = GZipMiddleware(app, minimum_size=minimum_size)
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http" and scope.get("path", "").startswith("/api/sse/"):
+            await self.app(scope, receive, send)
+        else:
+            await self.gzip_app(scope, receive, send)
+
+
+app.add_middleware(SelectiveGZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -242,29 +285,25 @@ app.add_middleware(
 )
 
 
-@app.websocket("/websocket/syncDict/g_data")
-async def websocket_endpoint(websocket: WebSocket):
-    await g_data_wsBinder.handel_connect(websocket)
-
-
-@app.websocket("/websocket/syncDict/download")
-async def websocket_endpoint(websocket: WebSocket):
-    await download_wsBinder.handel_connect(websocket)
-
-
-@app.websocket("/websocket/syncDict/favorite")
-async def websocket_endpoint(websocket: WebSocket):
-    await favorite_wsBinder.handel_connect(websocket)
-
-
-@app.websocket("/websocket/syncDict/card_info")
-async def websocket_endpoint(websocket: WebSocket):
-    await card_info_wsBinder.handel_connect(websocket)
-
-
-@app.websocket("/websocket/syncDict/history")
-async def websocket_endpoint(websocket: WebSocket):
-    await history_wsBinder.handel_connect(websocket)
+@app.get("/api/sse/syncDict")
+async def sse_sync_dict(request: Request,
+                         g_data_version: int = -1,
+                         download_version: int = -1,
+                         favorite_version: int = -1,
+                         card_info_version: int = -1,
+                         history_version: int = -1):
+    versions = {
+        'g_data': g_data_version,
+        'download': download_version,
+        'favorite': favorite_version,
+        'card_info': card_info_version,
+        'history': history_version,
+    }
+    return StreamingResponse(
+        subscribe_all_sync_dict(versions),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
+    )
 
 
 @app.get("/api/addFavorite/{gid}/{token}/{index}")

@@ -1,32 +1,42 @@
-import { useEffect, useRef, useState } from "react"
-import ReconnectingWebSocket from "reconnecting-websocket"
-
-const INIT = 0
-const READY = 1
-const WAITING = 2
+import { useEffect, useRef } from "react"
 
 const SET_KV = 0
 const DEL_K = 1
-const SYNC_ALL = 2
 const LOAD = 3
 
-export function useWsHandeler(wsUrl, onEvent) {
+const RECONNECT_DELAY = 3000
 
-    const version = useRef(-1)
-    const state = useRef(INIT)
-    const ws = useRef(null)
-    const pendingSets = useRef({})
-    const pendingDeletes = useRef(new Set())
+/**
+ * 单SSE连接多频道复用。
+ * handlers: { channelName: onEventCallback }
+ * onEventCallback(eventType, ...args):
+ *   - ('load', data)       全量加载
+ *   - ('batch', sets, deletes)  批量增量更新
+ */
+export function useSSEHandler(sseUrl, handlers) {
+
+    const versions = useRef({})       // { channel: version }
+    const esRef = useRef(null)
+    const reconnectTimerRef = useRef(null)
+    const mountedRef = useRef(true)
+    const pendingState = useRef({})   // { channel: { sets: {}, deletes: Set } }
     const flushTimerRef = useRef(null)
+
+    const getPending = (channel) => {
+        if (!pendingState.current[channel]) {
+            pendingState.current[channel] = { sets: {}, deletes: new Set() }
+        }
+        return pendingState.current[channel]
+    }
 
     const flush = () => {
         flushTimerRef.current = null
-        const sets = pendingSets.current
-        const deletes = [...pendingDeletes.current]
-        pendingSets.current = {}
-        pendingDeletes.current = new Set()
-        if (Object.keys(sets).length > 0 || deletes.length > 0) {
-            onEvent('batch', sets, deletes)
+        const state = pendingState.current
+        pendingState.current = {}
+        for (const [channel, { sets, deletes }] of Object.entries(state)) {
+            if (Object.keys(sets).length > 0 || deletes.size > 0) {
+                handlers[channel]?.('batch', sets, [...deletes])
+            }
         }
     }
 
@@ -41,164 +51,89 @@ export function useWsHandeler(wsUrl, onEvent) {
             clearTimeout(flushTimerRef.current)
             flushTimerRef.current = null
         }
-        pendingSets.current = {}
-        pendingDeletes.current = new Set()
+        pendingState.current = {}
     }
 
     useEffect(() => {
-        if (ws.current) return;
-        const onmessage = (event) => {
-            const recv = JSON.parse(event.data);
-            try {
-                if (state.current === READY) {
-                    if (recv.current === version.current) {
-                        version.current = recv.next;
-                        if (recv.action === SET_KV) {//set
-                            pendingSets.current[recv.key] = recv.value
-                            pendingDeletes.current.delete(recv.key)
-                            scheduleFlush()
-                        } else if (recv.action === DEL_K) {//delete
-                            delete pendingSets.current[recv.key]
-                            pendingDeletes.current.add(recv.key)
-                            scheduleFlush()
-                        } else if (recv.action === LOAD) {
-                            cancelFlush()
-                            onEvent('load', recv.data)
-                        }
-                    } else {
-                        cancelFlush()
-                        state.current = WAITING;
-                        ws.current.send("sync")
-                    }
-                } else {
-                    if (recv.action === SYNC_ALL) {//sync all
-                        version.current = recv.next
-                        cancelFlush()
-                        onEvent('load', recv.data)
-                        state.current = READY;
-                    }
+        mountedRef.current = true
+        if (sseUrl === "") return
+
+        const connect = () => {
+            if (!mountedRef.current) return
+            // 用已知频道版本构建查询参数
+            const params = new URLSearchParams()
+            const knownChannels = Object.keys(versions.current)
+            if (knownChannels.length === 0) {
+                // 首次连接，全量同步
+            } else {
+                for (const [channel, ver] of Object.entries(versions.current)) {
+                    params.set(`${channel}_version`, ver)
                 }
-            } catch (e) {
-                console.error(e)
+            }
+            const url = params.toString()
+                ? `${sseUrl}?${params.toString()}`
+                : sseUrl
+            const es = new EventSource(url)
+            esRef.current = es
+
+            es.onmessage = (event) => {
+                try {
+                    const recv = JSON.parse(event.data)
+                    const channel = recv.channel
+                    if (!channel || !handlers[channel]) return
+
+                    if (recv.action === LOAD) {
+                        delete pendingState.current[channel]
+                        versions.current[channel] = recv.next
+                        handlers[channel]('load', recv.data)
+                    } else if (recv.action === SET_KV) {
+                        if (recv.current === versions.current[channel]) {
+                            versions.current[channel] = recv.next
+                            const pending = getPending(channel)
+                            pending.sets[recv.key] = recv.value
+                            pending.deletes.delete(recv.key)
+                            scheduleFlush()
+                        }
+                    } else if (recv.action === DEL_K) {
+                        if (recv.current === versions.current[channel]) {
+                            versions.current[channel] = recv.next
+                            const pending = getPending(channel)
+                            delete pending.sets[recv.key]
+                            pending.deletes.add(recv.key)
+                            scheduleFlush()
+                        }
+                    }
+                } catch (e) {
+                    console.error(e)
+                }
+            }
+
+            es.onerror = () => {
+                es.close()
+                reconnect()
             }
         }
-        const onopen = () => {
-            console.log("ws open!")
-            ws.current.send("sync")
+
+        const reconnect = () => {
+            if (!mountedRef.current) return
+            if (reconnectTimerRef.current) return
+            reconnectTimerRef.current = setTimeout(() => {
+                reconnectTimerRef.current = null
+                connect()
+            }, RECONNECT_DELAY)
         }
-        if (wsUrl !== "") {
-            ws.current = new ReconnectingWebSocket(wsUrl, [], {
-                maxReconnectionDelay: 100,
-            })
-            ws.current.addEventListener("message", onmessage)
-            ws.current.addEventListener("open", onopen)
-        }
+
+        connect()
+
         return () => {
+            mountedRef.current = false
+            clearTimeout(reconnectTimerRef.current)
             cancelFlush()
-            if (ws.current && ws.current.readyState === 1) {
-                ws.current.close()
+            if (esRef.current) {
+                esRef.current.close()
             }
         }
     }, [])
+
     return null
-}
-
-
-export default function useSyncDict(wsUrl) {
-    const [data, setData] = useState({
-        keySet: new Set(),
-        dict: {}
-    })
-    const version = useRef(-1)
-    const state = useRef(INIT)
-    const ws = useRef(null)
-    const pendingSets = useRef({})
-    const pendingDeletes = useRef(new Set())
-    const flushTimerRef = useRef(null)
-
-    const flush = () => {
-        flushTimerRef.current = null
-        const sets = pendingSets.current
-        const deletes = [...pendingDeletes.current]
-        pendingSets.current = {}
-        pendingDeletes.current = new Set()
-        if (Object.keys(sets).length > 0 || deletes.length > 0) {
-            setData(old => {
-                let newDict = { ...old.dict, ...sets }
-                for (const key of deletes) {
-                    delete newDict[key]
-                }
-                return { keySet: new Set(Object.keys(newDict)), dict: newDict }
-            })
-        }
-    }
-
-    const scheduleFlush = () => {
-        if (flushTimerRef.current === null) {
-            flushTimerRef.current = setTimeout(flush, 0)
-        }
-    }
-
-    const cancelFlush = () => {
-        if (flushTimerRef.current !== null) {
-            clearTimeout(flushTimerRef.current)
-            flushTimerRef.current = null
-        }
-        pendingSets.current = {}
-        pendingDeletes.current = new Set()
-    }
-
-    useEffect(() => {
-        if (ws.current) return;
-        const onmessage = (event) => {
-            const recv = JSON.parse(event.data);
-            try {
-                if (state.current === READY) {
-                    if (recv.current === version.current) {
-                        version.current = recv.next;
-                        if (recv.action === SET_KV) {//set
-                            pendingSets.current[recv.key] = recv.value
-                            pendingDeletes.current.delete(recv.key)
-                            scheduleFlush()
-                        } else if (recv.action === DEL_K) {//delete
-                            delete pendingSets.current[recv.key]
-                            pendingDeletes.current.add(recv.key)
-                            scheduleFlush()
-                        } else if (recv.action === LOAD) {
-                            cancelFlush()
-                            setData(recv.data)
-                        }
-                    } else {
-                        cancelFlush()
-                        state.current = WAITING;
-                        ws.current.send("sync")
-                    }
-                } else {
-                    if (recv.action === SYNC_ALL) {//sync all
-                        version.current = recv.next
-                        cancelFlush()
-                        setData(recv.data)
-                        state.current = READY;
-                    }
-                }
-            } catch (e) {
-                console.error(e)
-            }
-        }
-        const onopen = () => {
-            ws.current.send("sync")
-        }
-        ws.current = new ReconnectingWebSocket(wsUrl, [], {
-            maxReconnectionDelay: 100,
-        })
-        ws.current.addEventListener("message", onmessage)
-        ws.current.addEventListener("open", onopen)
-        return () => {
-            cancelFlush()
-            if (ws.current && ws.current.readyState === 1) {
-                ws.current.close()
-            }
-        }
-    }, [])
-    return data
 }

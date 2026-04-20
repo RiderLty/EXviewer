@@ -7,7 +7,7 @@ import GalleryPage from './components/ui/GalleryPage';
 import PopoverNotifier from "./components/utils/PopoverNotifier";
 import { useSettingBind } from './components/utils/SettingHooks';
 import ViewPage from './components/ui/ViewPage';
-import { useWsHandeler } from './components/utils/useSyncDict';
+import { useSSEHandler } from './components/utils/useSyncDict';
 import syncedDB from './components/utils/mobxSyncedState';
 import { observer } from "mobx-react";
 import DownloadCircularProgress from './components/ui/MainPageComponents/DownloadCircularProgress';
@@ -19,13 +19,14 @@ import { SwitchRouter } from './components/utils/Router';
 import { Route, Routes } from 'react-router';
 import { HashRouter } from 'react-router-dom';
 import BackButton from './components/utils/BackButton';
-import { getWsUrl } from './components/api/serverApi';
 
 function App_inner() {
-  useWsHandeler(getWsUrl('websocket/syncDict/download'), syncedDB.getEventHandeler('download'))
-  useWsHandeler(getWsUrl('websocket/syncDict/favorite'), syncedDB.getEventHandeler('favorite'))
-  useWsHandeler(getWsUrl('websocket/syncDict/card_info'), syncedDB.getEventHandeler('card_info'))
-  useWsHandeler(getWsUrl('websocket/syncDict/history'), syncedDB.getEventHandeler('history'))
+  useSSEHandler('api/sse/syncDict', {
+    download: syncedDB.getEventHandeler('download'),
+    favorite: syncedDB.getEventHandeler('favorite'),
+    card_info: syncedDB.getEventHandeler('card_info'),
+    history: syncedDB.getEventHandeler('history'),
+  })
   const colorMode = useSettingBind('色彩主题', '暗色')
   const dark = useMemo(() => {
     if (colorMode === "跟随系统") {

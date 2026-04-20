@@ -7,7 +7,7 @@ import time
 from time import perf_counter
 from typing import Dict, List
 
-from fastapi import WebSocket
+from fastapi import WebSocket  # still needed for uploadZip/syncFromOther
 from tinydb import Query, TinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.queries import QueryLike
@@ -169,62 +169,40 @@ class EHDBM():
         )
 
 
-class wsDBMBinder():
-    def __init__(self, tab: Table, loop: asyncio.AbstractEventLoop) -> None:
+class SSEDBMBinder():
+    def __init__(self, tab: Table, loop: asyncio.AbstractEventLoop, channel: str = "") -> None:
         self.loop = loop
-        self._actionQueue = asyncio.Queue()  # loop=self.loop
-        self._dbm = EHDBM(tab=tab, actionQueue=self._actionQueue,
+        self.channel = channel
+        self._dbm = EHDBM(tab=tab, actionQueue=None,
                           actionHandeler=self.handelAction)
-        self._active_connections: List[WebSocket] = []
-
-        async def asyncLoop():
-            logger.debug("DBM action handler start")
-            while True:
-                action = await self._actionQueue.get()
-                self.handelAction(action)
-        self.loop.create_task(asyncLoop())
+        self._subscribers: List[asyncio.Queue] = []
 
     def handelAction(self, action):
         try:
             if action["action"] == SET or action["action"] == DEL or action["action"] == LOAD:
-                self.loop.create_task(self._broadcast(action))
-            elif action["action"] == SYNC:
-                ws = action["flag"]
-                action["flag"] = f"{ws.client.host}:{ws.client.port}"
-                self.loop.create_task(ws.send_json(action))
+                if self.channel:
+                    action = {**action, "channel": self.channel}
+                for q in self._subscribers:
+                    self.loop.call_soon_threadsafe(q.put_nowait, action)
         except Exception as e:
-            logger.error(f"DBM action handler error: {e}")
+            logger.error(f"SSE DBM action handler error: {e}")
 
     def getDBM(self):
         return self._dbm
 
-    async def handel_connect(self, ws: WebSocket):
-        try:
-            await ws.accept()
-            self._active_connections.append(ws)
-            logger.info(f"{ws.client.host}:{ws.client.port} connected")
-            while True:
-                msg = await ws.receive_text()
-                self._handel_message(msg, ws)
-        except Exception as e:
-            logger.info(f"{e} {ws.client.host}:{ws.client.port} disconnect")
-            self._active_connections.remove(ws)
+    @property
+    def version(self):
+        return self._dbm.version
 
-    async def _broadcast(self, msg):
-        dead_connections = []
-        async def _send_to(ws):
-            try:
-                await asyncio.wait_for(ws.send_json(msg), timeout=10)
-            except Exception:
-                dead_connections.append(ws)
-        await asyncio.gather(*[_send_to(ws) for ws in self._active_connections])
-        for ws in dead_connections:
-            if ws in self._active_connections:
-                self._active_connections.remove(ws)
+    def getDict(self):
+        return self._dbm.getDict()
 
-    def _handel_message(self, msg, ws):
-        if msg == "sync":
-            self._dbm.sync(ws)
+    def add_subscriber(self, q: asyncio.Queue):
+        self._subscribers.append(q)
+
+    def remove_subscriber(self, q: asyncio.Queue):
+        if q in self._subscribers:
+            self._subscribers.remove(q)
 
 
 def translateSQLite2Nosql():

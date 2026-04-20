@@ -12,7 +12,7 @@ import time
 from aiohttp import ClientSession, ClientTimeout, ClientResponse
 from cacheout import LRUCache
 from fastapi import HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 from tinydb import Query
 from utils.MakePDF import img2pdf
 from utils.AsyncCacheWarper import AsyncCacheWarper
@@ -34,12 +34,12 @@ class commentBody(BaseModel):
     commentID: int
 
 
-class downloadListBody(BaseModel):
-    __root__: List[List[Union[int, str]]]
+class downloadListBody(RootModel[List[List[Union[int, str]]]]):
+    pass
 
 
-class gidTokenListBody(BaseModel):
-    __root__: List[List[Union[int, str]]]
+class gidTokenListBody(RootModel[List[List[Union[int, str]]]]):
+    pass
 
 
 class NOSQL_DBS:
@@ -125,7 +125,7 @@ class aoiAccessor:
         self.db = db
         self.loop = loop
         self.downloadManagerInstance = downloadManager(self)
-        self.session = ClientSession()  # loop=loop
+        self._session = None
         self.loop.create_task(self.inlineSetOnInit())
 
         for gid in self.db.download:  # 初始化时 清除下载状态
@@ -136,6 +136,12 @@ class aoiAccessor:
         #     self.loop.create_task(self.updateCardInfo(res["gid"],res["token"]))
         #     for res in self.db.download.getDict().values()
         # ]
+
+    @property
+    def session(self):
+        if self._session is None:
+            self._session = ClientSession()
+        return self._session
 
     def getCachePath(self, gid, token, index=None):
         """
