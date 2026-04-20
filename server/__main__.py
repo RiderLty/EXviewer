@@ -161,6 +161,7 @@ FAVORITE_DISABLED = getConfig("EH_FAVORITE_DISABLED", 'false')
 DOWNLOAD_DISABLED = getConfig("EH_DOWNLOAD_DISABLED", 'false')
 EH_COMMENT_DISABLED = getConfig("EH_COMMENT_DISABLED", 'false')
 EH_RATE_DISABLED = getConfig("EH_RATE_DISABLED", 'false')
+HISTORY_LIMIT = int(getConfig("EH_HISTORY_LIMIT", 200))
 PORT = int(getConfig("PORT", 7964))
 UTC_OFFSET = int(getConfig("UTC_OFFSET", getUTCOffset())) * 3600
 setParserUtcOffset(UTC_OFFSET)
@@ -225,7 +226,8 @@ aioPa = aoiAccessor(
         EHDBM(NOSQL_DB.table('father_tree'), serverLoop, None),
         history_wsBinder.getDBM()
     ),
-    loop=serverLoop
+    loop=serverLoop,
+    history_limit=HISTORY_LIMIT
 )
 
 
@@ -615,8 +617,15 @@ async def geHistory(request: Request, next: int = None):
 
 @app.get("/api/history/add")
 async def addHistory(request: Request, gid: int, token: str):
+    if HISTORY_LIMIT == 0:
+        return {"msg": "history disabled"}
     await aioPa.addHistory(gid, token)
     return {"msg": "success"}
+
+
+@app.get("/api/history/status")
+async def historyStatus():
+    return {"enabled": HISTORY_LIMIT != 0, "limit": HISTORY_LIMIT}
 
 
 @app.get("/api/history/clear")

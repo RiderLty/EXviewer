@@ -154,14 +154,11 @@ function MainPage_inner(props) {
     const syncHistoryDBToHooks = (
         history
     ) => {
-        const historyLen = getSetting("浏览历史", "100")
-        const newGidList = Object.values(history).map(item => item.gid)
-        const slicedList = historyLen === "无限制" ? newGidList : newGidList.slice(0, Number(historyLen))
-        slicedList.sort((a, b) => {
-            return history[b].timestamp - history[a].timestamp
-        })
+        const sortedGidList = Object.values(history)
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .map(item => item.gid)
         setCardInfoMap(toJS(history))
-        setCardGidList(slicedList)
+        setCardGidList(sortedGidList)
     }
 
     const requestData = async () => {
@@ -410,7 +407,7 @@ function MainPage_inner(props) {
     const normalActions = [request_next, card_jump, action_goTop, action_randomSort, action_nameHashSort, action_refresh]
     const downloadPageActions = [action_continueDownload, now_downloading, card_jump, action_goTop, action_randomSort, action_nameHashSort,]
 
-    const historyRecord = useSettingBind("浏览历史", "100")
+    const historyRecord = useSettingBind("浏览历史", true)
 
     const leftMenuItems = [
         {
@@ -440,7 +437,7 @@ function MainPage_inner(props) {
             icon: <DownloadIcon />,
             text: "下载"
         },
-        historyRecord !== "0" && {
+        historyRecord && {
             onClick: () => { props.openURL(leftMenuMap["历史"], "") },
             icon: <HistoryIcon />,
             text: "历史"

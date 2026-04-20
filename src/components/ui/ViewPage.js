@@ -30,7 +30,7 @@ export default function ViewPage(props) {
     }
     useEffect(() => {
         fetchData()
-        if (getSetting("浏览历史", "100") !== "0") {
+        if (getSetting("浏览历史", true)) {
             addHistory(props.gid, props.token)
         }
     }, [props.gid, props.token])

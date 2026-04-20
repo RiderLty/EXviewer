@@ -106,12 +106,14 @@ class aoiAccessor:
         link_or_move: str,
         db: NOSQL_DBS,
         loop: asyncio.AbstractEventLoop,
+        history_limit: int = 200,
     ) -> None:
         self.headers = headers
         self.coverPath = coverPath
         self.cachePath = cachePath
         self.galleryPath = galleryPath
         self.link_or_move = link_or_move
+        self.history_limit = history_limit
         self.cache_html = LRUCache(maxsize=512, default=None)
         self.cache_cardInfo = LRUCache(maxsize=512, default=None)
         # 下载时可以用， 获取g_data 然后更新数据库和此cache
@@ -1223,9 +1225,17 @@ class aoiAccessor:
             raise makeTrackableException(e, "get cardInfo failed")
 
     async def addHistory(self, gid: int, token: str):  # 添加历史记录
+        if self.history_limit == 0:
+            return False
         cardInfo = await self.getCardInfo(gid, token)
         cardInfo["timestamp"] = int(time.time())
         self.db.history[gid] = cardInfo
+        # 超过限制时删除最旧的记录
+        if self.history_limit > 0 and len(self.db.history) > self.history_limit:
+            sorted_keys = sorted(self.db.history.keys(), key=lambda k: self.db.history[k]["timestamp"] if self.db.history[k] else 0)
+            delete_count = len(self.db.history) - self.history_limit
+            for key in sorted_keys[:delete_count]:
+                del self.db.history[key]
         return True
 
     def getHistory(self):

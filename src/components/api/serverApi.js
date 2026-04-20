@@ -206,6 +206,10 @@ const clearHistory = async () => {
     return await Get(`api/history/clear`)
 }
 
+const fetchHistoryStatus = async () => {
+    return await Get(`api/history/status`)
+}
+
 const getWsUrl = (source) => {//获取ws链接
     if (getSetting("服务器URL", "") === "") {
         const backendHost = process.env.REACT_APP_BACKEND_HOST || window.location.hostname
@@ -253,4 +257,5 @@ export {
     getWsUrl,
     addHistory,
     clearHistory,
+    fetchHistoryStatus,
 }

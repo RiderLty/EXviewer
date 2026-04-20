@@ -475,15 +475,10 @@ export default function AppSetting(props) {
                 <div className={classes.splitLine} />
 
                 <Grid item xs={12} sx={{ width: "100%" }}>
-                    <SelectType
+                    <SwitchType
                         name={"浏览历史"}
-                        defaultValue={"100"}
-                        values={["0", "50", "100", "200","无限制"]}
-                        help={(value) => {
-                            if(value === 0 ) return "禁用浏览历史"
-                            if(value === "无限制") return "不限制浏览历史数量"
-                            return `保存${value}条浏览历史`
-                        }}
+                        defaultValue={true}
+                        help={(value) => value ? "记录浏览历史" : "不记录浏览历史"}
                     />
                 </Grid>
 
