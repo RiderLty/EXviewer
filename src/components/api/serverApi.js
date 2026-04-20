@@ -208,13 +208,9 @@ const clearHistory = async () => {
 
 const getWsUrl = (source) => {//获取ws链接
     if (getSetting("服务器URL", "") === "") {
-        return window.location.href
-            .replace(window.location.hash, "")
-            .replace("https:", "wss:")
-            .replace("http:", "ws:")
-            .replace("3000", "7964")
-            +
-            source
+        const backendHost = process.env.REACT_APP_BACKEND_HOST || window.location.hostname
+        const backendPort = process.env.REACT_APP_BACKEND_PORT || '7965'
+        return `${window.location.protocol === "https:" ? "wss:" : "ws:"}//${backendHost}:${backendPort}/${source}`
     } else {
         return apiUrlJoin(source)
             .replace("https:", "wss:")
